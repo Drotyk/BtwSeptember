@@ -1,1 +1,27 @@
-.idea
+.idea/
+
+# Local configuration and secrets
+.env
+.env.*
+!.env.example
+
+# Node.js / TypeScript
+node_modules/
+dist/
+npm-debug.log*
+
+# Python leftovers
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+
+# Test and tooling caches
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# Local database volumes / logs
+postgres-data/
+*.log
