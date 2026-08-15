@@ -5,17 +5,20 @@ export interface Settings {
   databaseUrl: string;
 }
 
-export function getSettings(): Settings {
-  const botToken = process.env.BOT_TOKEN?.trim() ?? "";
+export function getDatabaseUrl(): string {
   const databaseUrl = process.env.DATABASE_URL?.trim() ?? "";
-  const missing: string[] = [];
-
-  if (!botToken) missing.push("BOT_TOKEN");
-  if (!databaseUrl) missing.push("DATABASE_URL");
-
-  if (missing.length > 0) {
-    throw new Error(`Не задані обов'язкові змінні середовища: ${missing.join(", ")}`);
+  if (!databaseUrl) {
+    throw new Error("Не задана обов'язкова змінна середовища: DATABASE_URL");
   }
 
-  return { botToken, databaseUrl };
+  return databaseUrl;
+}
+
+export function getSettings(): Settings {
+  const botToken = process.env.BOT_TOKEN?.trim() ?? "";
+  if (!botToken) {
+    throw new Error("Не задана обов'язкова змінна середовища: BOT_TOKEN");
+  }
+
+  return { botToken, databaseUrl: getDatabaseUrl() };
 }

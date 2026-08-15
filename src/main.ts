@@ -1,11 +1,12 @@
 import { createBot } from "./bot.js";
 import { getSettings } from "./config.js";
-import { createPool, initDb } from "./db.js";
+import { createPool } from "./db.js";
+import { runMigrations } from "./migrations.js";
 
 async function main(): Promise<void> {
   const settings = getSettings();
   const pool = createPool(settings.databaseUrl);
-  await initDb(pool);
+  await runMigrations(pool);
 
   const bot = createBot(settings.botToken, pool);
 

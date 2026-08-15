@@ -6,7 +6,8 @@
   "scripts": {
     "build": "tsc",
     "start": "node dist/main.js",
-    "dev": "tsx src/main.ts"
+    "dev": "tsx src/main.ts",
+    "migrate:up": "tsx src/migrate.ts"
   },
   "dependencies": {
     "dotenv": "^16.4.7",
