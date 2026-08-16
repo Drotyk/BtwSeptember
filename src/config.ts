@@ -3,6 +3,8 @@ import "dotenv/config";
 export interface Settings {
   botToken: string;
   databaseUrl: string;
+  webHost: string;
+  webPort: number;
 }
 
 export function getDatabaseUrl(): string {
@@ -20,5 +22,12 @@ export function getSettings(): Settings {
     throw new Error("Не задана обов'язкова змінна середовища: BOT_TOKEN");
   }
 
-  return { botToken, databaseUrl: getDatabaseUrl() };
+  const webPort = Number(process.env.WEB_PORT?.trim() || "3000");
+  if (!Number.isInteger(webPort) || webPort < 1 || webPort > 65535) {
+    throw new Error("WEB_PORT має бути цілим числом від 1 до 65535");
+  }
+
+  const webHost = process.env.WEB_HOST?.trim() || "127.0.0.1";
+
+  return { botToken, databaseUrl: getDatabaseUrl(), webHost, webPort };
 }

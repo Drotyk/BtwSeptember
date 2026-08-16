@@ -2,6 +2,7 @@ import { createBot } from "./bot.js";
 import { getSettings } from "./config.js";
 import { createPool } from "./db.js";
 import { runMigrations } from "./migrations.js";
+import { startWebServer, stopWebServer } from "./web.js";
 
 async function main(): Promise<void> {
   const settings = getSettings();
@@ -9,10 +10,12 @@ async function main(): Promise<void> {
   await runMigrations(pool);
 
   const bot = createBot(settings.botToken, pool);
+  const webServer = await startWebServer(pool, settings.webHost, settings.webPort);
 
   const shutdown = async (signal: string): Promise<void> => {
     console.info(`Отримано ${signal}, зупиняю бота...`);
     await bot.stop();
+    await stopWebServer(webServer);
     await pool.end();
   };
 
