@@ -38,12 +38,19 @@ type BotContext = Context & SessionFlavor<SessionData>;
 
 const removeKeyboard = { remove_keyboard: true } as const;
 const OTHER = "Інше";
+const BACK = "Назад";
 const PERSONAL_DATA_YES = "Так, погоджуюсь";
 const NO_CONSENT = "Не погоджуюсь";
+
+function backKeyboard(): Keyboard {
+  return new Keyboard().text(BACK).resized().oneTime();
+}
 
 function phoneKeyboard(): Keyboard {
   return new Keyboard()
     .requestContact("Надіслати номер телефону")
+    .row()
+    .text(BACK)
     .resized()
     .oneTime();
 }
@@ -58,6 +65,8 @@ function institutionKeyboard(): Keyboard {
     .row()
     .text("ДонНУ")
     .text(OTHER)
+    .row()
+    .text(BACK)
     .resized()
     .oneTime();
 }
@@ -71,6 +80,8 @@ function courseKeyboard(): Keyboard {
     .text("4")
     .text("магістр")
     .text(OTHER)
+    .row()
+    .text(BACK)
     .resized()
     .oneTime();
 }
@@ -84,16 +95,32 @@ function sourceKeyboard(): Keyboard {
     .text("Із соціальних мереж")
     .row()
     .text(OTHER)
+    .row()
+    .text(BACK)
     .resized()
     .oneTime();
 }
 
 function consentKeyboard(): Keyboard {
-  return new Keyboard().text(PERSONAL_DATA_YES).row().text(NO_CONSENT).resized().oneTime();
+  return new Keyboard()
+    .text(PERSONAL_DATA_YES)
+    .row()
+    .text(NO_CONSENT)
+    .row()
+    .text(BACK)
+    .resized()
+    .oneTime();
 }
 
 function rulesKeyboard(): Keyboard {
-  return new Keyboard().text(PERSONAL_DATA_YES).row().text(NO_CONSENT).resized().oneTime();
+  return new Keyboard()
+    .text(PERSONAL_DATA_YES)
+    .row()
+    .text(NO_CONSENT)
+    .row()
+    .text(BACK)
+    .resized()
+    .oneTime();
 }
 
 function trainingKeyboard(selected: number[] = []): InlineKeyboard {
@@ -104,7 +131,7 @@ function trainingKeyboard(selected: number[] = []): InlineKeyboard {
     keyboard.text(`${marker}${index + 1}. ${getTrainingDate(training)}`, `training:${index}`).row();
   });
 
-  keyboard.text("Готово", "training:done");
+  keyboard.text("Готово", "training:done").row().text(BACK, "training:back");
   return keyboard;
 }
 
@@ -130,6 +157,84 @@ function selectedTrainings(registration: RegistrationState): string[] {
 
 function selectedTrainingDates(registration: RegistrationState): string[] {
   return selectedTrainings(registration).map(getTrainingDate);
+}
+
+async function goBack(ctx: BotContext): Promise<void> {
+  const step = ctx.session.registration?.step;
+
+  switch (step) {
+    case "name":
+      await ctx.reply("Це перший крок анкети. Введіть Ваше прізвище та ім’я.", {
+        reply_markup: removeKeyboard,
+      });
+      return;
+    case "phone":
+      setStep(ctx, "name");
+      await ctx.reply("Ваше прізвище та ім’я (без по батькові)?", {
+        reply_markup: removeKeyboard,
+      });
+      return;
+    case "username":
+      setStep(ctx, "phone");
+      await ctx.reply("Вкажіть номер телефону або скористайтеся кнопкою нижче.", {
+        reply_markup: phoneKeyboard(),
+      });
+      return;
+    case "institution":
+      setStep(ctx, "username");
+      await ctx.reply("Введіть Ваш Telegram у форматі @username (наприклад, @ivan_petrenko).", {
+        reply_markup: backKeyboard(),
+      });
+      return;
+    case "institutionOther":
+      setStep(ctx, "institution");
+      await ctx.reply("Навчальний заклад, у якому Ви зараз навчаєтеся?", {
+        reply_markup: institutionKeyboard(),
+      });
+      return;
+    case "course":
+      setStep(ctx, "institution");
+      await ctx.reply("Навчальний заклад, у якому Ви зараз навчаєтеся?", {
+        reply_markup: institutionKeyboard(),
+      });
+      return;
+    case "courseOther":
+      setStep(ctx, "course");
+      await ctx.reply("Який Ви курс?", { reply_markup: courseKeyboard() });
+      return;
+    case "trainings":
+      setStep(ctx, "course");
+      await ctx.reply("Який Ви курс?", { reply_markup: courseKeyboard() });
+      return;
+    case "source":
+      setStep(ctx, "trainings");
+      await ctx.reply(
+        "На які тренінги Ви плануєте прийти?\n\n" +
+          "Натискайте на всі потрібні варіанти, а після вибору - «Готово».",
+        { reply_markup: trainingKeyboard(ctx.session.registration?.trainings ?? []) },
+      );
+      return;
+    case "sourceOther":
+      setStep(ctx, "source");
+      await ctx.reply("Звідки Ви дізналися про BEST Training Week?", {
+        reply_markup: sourceKeyboard(),
+      });
+      return;
+    case "personalConsent":
+      setStep(ctx, "source");
+      await ctx.reply("Звідки Ви дізналися про BEST Training Week?", {
+        reply_markup: sourceKeyboard(),
+      });
+      return;
+    case "rulesConsent":
+      setStep(ctx, "personalConsent");
+      await ctx.reply("Чи надаєте згоду BEST Vinnytsia обробляти Ваші персональні дані?", {
+        reply_markup: consentKeyboard(),
+      });
+      return;
+    default:
+      await ctx.reply("Активної анкети немає. Щоб почати, натисніть /start.");
+  }
 }
 
 async function finishRegistration(ctx: BotContext, pool: Pool): Promise<void> {
@@ -175,7 +280,7 @@ async function finishRegistration(ctx: BotContext, pool: Pool): Promise<void> {
   ctx.session = {};
   await ctx.reply(
     [
-      "Готово! Вашу анкету збережено. Дякуємо за реєстрацію на BTW’25!",
+      "Готово! Вашу анкету збережено. Дякуємо за реєстрацію на BTW’26!",
       "",
       `ПІ: ${registration.name}`,
       `Телефон: ${registration.phoneNumber}`,
@@ -210,6 +315,10 @@ export function createBot(token: string, pool: Pool): Bot<BotContext> {
     });
   });
 
+  bot.command("back", async (ctx) => {
+    await goBack(ctx);
+  });
+
   bot.on("callback_query:data", async (ctx) => {
     if (!hasStep(ctx, "trainings")) {
       await ctx.answerCallbackQuery({ text: "Ця анкета вже завершена або скасована." });
@@ -219,6 +328,13 @@ export function createBot(token: string, pool: Pool): Bot<BotContext> {
     const data = ctx.callbackQuery.data;
     const registration = ctx.session.registration;
     if (!registration) return;
+
+    if (data === "training:back") {
+      setStep(ctx, "course");
+      await ctx.answerCallbackQuery();
+      await ctx.reply("Який Ви курс?", { reply_markup: courseKeyboard() });
+      return;
+    }
 
     if (data === "training:done") {
       if (!registration.trainings?.length) {
@@ -276,17 +392,22 @@ export function createBot(token: string, pool: Pool): Bot<BotContext> {
 
     setStep(ctx, "username", { phoneNumber: phone });
     await ctx.reply("Введіть Ваш Telegram у форматі @username (наприклад, @ivan_petrenko).", {
-      reply_markup: removeKeyboard,
+      reply_markup: backKeyboard(),
     });
   });
 
   bot.on("message:text", async (ctx) => {
     const text = ctx.message.text;
 
+    if (text === BACK) {
+      await goBack(ctx);
+      return;
+    }
+
     if (hasStep(ctx, "name")) {
       const name = validateName(text);
       if (!name) {
-        await ctx.reply("Введіть прізвище та ім’я у форматі «Прізвище Ім’я» — рівно два слова.");
+        await ctx.reply("Введіть прізвище та ім’я у форматі «Прізвище Ім’я» - рівно два слова.");
         return;
       }
 
@@ -306,7 +427,7 @@ export function createBot(token: string, pool: Pool): Bot<BotContext> {
 
       setStep(ctx, "username", { phoneNumber: phone });
       await ctx.reply("Введіть Ваш Telegram у форматі @username (наприклад, @ivan_petrenko).", {
-        reply_markup: removeKeyboard,
+        reply_markup: backKeyboard(),
       });
       return;
     }
@@ -328,7 +449,9 @@ export function createBot(token: string, pool: Pool): Bot<BotContext> {
     if (hasStep(ctx, "institution")) {
       if (text === OTHER) {
         setStep(ctx, "institutionOther");
-        await ctx.reply("Напишіть назву навчального закладу.", { reply_markup: removeKeyboard });
+        await ctx.reply("Напишіть назву навчального закладу.", {
+          reply_markup: backKeyboard(),
+        });
         return;
       }
 
@@ -359,7 +482,7 @@ export function createBot(token: string, pool: Pool): Bot<BotContext> {
     if (hasStep(ctx, "course")) {
       if (text === OTHER) {
         setStep(ctx, "courseOther");
-        await ctx.reply("Напишіть Ваш курс.", { reply_markup: removeKeyboard });
+        await ctx.reply("Напишіть Ваш курс.", { reply_markup: backKeyboard() });
         return;
       }
 
@@ -371,7 +494,7 @@ export function createBot(token: string, pool: Pool): Bot<BotContext> {
       setStep(ctx, "trainings", { course: text, trainings: [] });
       await ctx.reply(
         "На які тренінги Ви плануєте прийти?\n\n" +
-          "Натискайте на всі потрібні варіанти, а після вибору — «Готово».",
+          "Натискайте на всі потрібні варіанти, а після вибору - «Готово».",
         { reply_markup: trainingKeyboard() },
       );
       return;
@@ -387,7 +510,7 @@ export function createBot(token: string, pool: Pool): Bot<BotContext> {
       setStep(ctx, "trainings", { course, trainings: [] });
       await ctx.reply(
         "На які тренінги Ви плануєте прийти?\n\n" +
-          "Натискайте на всі потрібні варіанти, а після вибору — «Готово».",
+          "Натискайте на всі потрібні варіанти, а після вибору - «Готово».",
         { reply_markup: trainingKeyboard() },
       );
       return;
@@ -401,7 +524,9 @@ export function createBot(token: string, pool: Pool): Bot<BotContext> {
     if (hasStep(ctx, "source")) {
       if (text === OTHER) {
         setStep(ctx, "sourceOther");
-        await ctx.reply("Напишіть, звідки Ви дізналися про захід.", { reply_markup: removeKeyboard });
+        await ctx.reply("Напишіть, звідки Ви дізналися про захід.", {
+          reply_markup: backKeyboard(),
+        });
         return;
       }
 
@@ -450,7 +575,7 @@ export function createBot(token: string, pool: Pool): Bot<BotContext> {
       }
 
       setStep(ctx, "rulesConsent");
-      await ctx.reply("Чи ознайомлені та погоджуєтеся з правилами заходу BTW’25?", {
+      await ctx.reply("Чи ознайомлені та погоджуєтеся з правилами заходу BTW’26?", {
         reply_markup: rulesKeyboard(),
       });
       return;
