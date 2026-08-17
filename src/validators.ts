@@ -1,7 +1,6 @@
 const UKRAINIAN_PHONE_PATTERN = /^(?:\+380|380|0)[0-9]{9}$/;
 const NAME_PART_PATTERN = /^\p{L}+(?:[-'’ʼ]\p{L}+)*$/u;
 const PLACEHOLDER_NAME_PATTERN = /^прізвище ім['’ʼ]я$/iu;
-const TELEGRAM_USERNAME_PATTERN = /^[A-Za-z0-9_]{5,32}$/;
 
 export function normalizePhone(value: string): string | null {
   const normalized = value.trim().replace(/[\s()-]/g, "");
@@ -30,13 +29,6 @@ export function validateName(value: string): string | null {
   }
 
   return normalized;
-}
-
-export function normalizeTelegramUsername(value: string): string | null {
-  const normalized = value.trim().replace(/^@/, "");
-  if (!TELEGRAM_USERNAME_PATTERN.test(normalized)) return null;
-
-  return `@${normalized}`;
 }
 
 export function validateCustomAnswer(value: string, maxLength = 100): string | null {

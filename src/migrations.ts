@@ -48,3 +48,20 @@ export async function runMigrations(
     client.release();
   }
 }
+
+export async function migrationsAreApplied(
+  pool: Pool,
+  migrationsDirectory = MIGRATIONS_DIRECTORY,
+): Promise<boolean> {
+  const migrationFiles = (await readdir(migrationsDirectory))
+    .filter((file) => file.endsWith(".sql"))
+    .sort();
+  if (migrationFiles.length === 0) return true;
+
+  const result = await pool.query<{ version: string }>(
+    "SELECT version FROM schema_migrations WHERE version = ANY($1::text[])",
+    [migrationFiles],
+  );
+  const applied = new Set(result.rows.map((row) => row.version));
+  return migrationFiles.every((file) => applied.has(file));
+}

@@ -3,40 +3,50 @@ import { readFile } from "node:fs/promises";
 import { resolve } from "node:path";
 import type { Pool } from "pg";
 
-interface UserRow {
-  id: string;
-  telegramUserId: string;
-  phoneNumber: string;
-  name: string;
-  telegramUsername: string | null;
-  institution: string | null;
-  course: string | null;
-  trainings: string[] | null;
-  discoverySource: string | null;
-  personalDataConsent: boolean;
-  eventRulesConsent: boolean;
-  createdAt: Date;
-  updatedAt: Date;
-}
+import { createAdminAuth, type AdminAuth } from "./web/auth.js";
+import type { Settings } from "./config.js";
+import { TRAININGS, getTrainingLabel } from "./form.js";
+import { createUsersRepository } from "./repositories/users.repository.js";
 
 const INDEX_FILE = resolve(process.cwd(), "public/index.html");
+const LOGIN_FILE = resolve(process.cwd(), "public/login.html");
+const APP_SCRIPT_FILE = resolve(process.cwd(), "public/app.js");
+const LOGIN_SCRIPT_FILE = resolve(process.cwd(), "public/login.js");
+const MAX_BODY_BYTES = 16 * 1024;
 
-function sendJson(response: ServerResponse, statusCode: number, body: unknown): void {
-  const payload = JSON.stringify(body);
-  response.writeHead(statusCode, {
-    "Content-Type": "application/json; charset=utf-8",
-    "Cache-Control": "no-store",
-  });
-  response.end(payload);
+function setSecurityHeaders(response: ServerResponse): void {
+  response.setHeader(
+    "Content-Security-Policy",
+    "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; connect-src 'self'; img-src 'self'; frame-ancestors 'none'; base-uri 'none'; form-action 'self'",
+  );
+  response.setHeader("X-Content-Type-Options", "nosniff");
+  response.setHeader("X-Frame-Options", "DENY");
+  response.setHeader("Referrer-Policy", "no-referrer");
+  response.setHeader("Permissions-Policy", "camera=(), microphone=(), geolocation=()");
 }
 
-async function sendIndex(response: ServerResponse): Promise<void> {
-  const html = await readFile(INDEX_FILE, "utf8");
-  response.writeHead(200, {
-    "Content-Type": "text/html; charset=utf-8",
-    "Cache-Control": "no-store",
+function sendJson(response: ServerResponse, statusCode: number, body: unknown): void {
+  setSecurityHeaders(response);
+  response.writeHead(statusCode, {
+    "Content-Type": "application/json; charset=utf-8",
+    "Cache-Control": "no-store, max-age=0",
+    Pragma: "no-cache",
   });
-  response.end(html);
+  response.end(JSON.stringify(body));
+}
+
+async function sendFile(
+  response: ServerResponse,
+  file: string,
+  contentType: string,
+): Promise<void> {
+  setSecurityHeaders(response);
+  response.writeHead(200, {
+    "Content-Type": contentType,
+    "Cache-Control": "no-store, max-age=0",
+    Pragma: "no-cache",
+  });
+  response.end(await readFile(file));
 }
 
 function getPaginationValue(value: string | null, fallback: number): number {
@@ -44,128 +54,170 @@ function getPaginationValue(value: string | null, fallback: number): number {
   return Number.isInteger(parsed) && parsed > 0 ? parsed : fallback;
 }
 
+async function readBody(request: IncomingMessage): Promise<string> {
+  let size = 0;
+  const chunks: Buffer[] = [];
+  for await (const chunk of request) {
+    const buffer = Buffer.isBuffer(chunk)
+      ? chunk
+      : Buffer.from(typeof chunk === "string" ? chunk : (chunk as Uint8Array));
+    size += buffer.length;
+    if (size > MAX_BODY_BYTES) throw new Error("BODY_TOO_LARGE");
+    chunks.push(buffer);
+  }
+  return Buffer.concat(chunks).toString("utf8");
+}
+
+function clientKey(request: IncomingMessage): string {
+  return request.socket.remoteAddress ?? "unknown";
+}
+
+async function handleLogin(
+  request: IncomingMessage,
+  response: ServerResponse,
+  auth: AdminAuth,
+): Promise<void> {
+  let body: unknown;
+  try {
+    body = JSON.parse(await readBody(request));
+  } catch {
+    sendJson(response, 401, { error: "Неправильний логін або пароль" });
+    return;
+  }
+  const record = typeof body === "object" && body !== null ? (body as Record<string, unknown>) : {};
+  const username = typeof record.username === "string" ? record.username : "";
+  const password = typeof record.password === "string" ? record.password : "";
+  const result = await auth.authenticate(username, password, clientKey(request));
+  if (result !== "ok") {
+    sendJson(response, result === "rate_limited" ? 429 : 401, {
+      error: "Неправильний логін або пароль",
+    });
+    return;
+  }
+  await auth.login(response);
+  sendJson(response, 200, { ok: true });
+}
+
 async function handleRequest(
   request: IncomingMessage,
   response: ServerResponse,
   pool: Pool,
+  settings: Settings,
+  auth: AdminAuth,
+  readiness: () => Promise<boolean>,
 ): Promise<void> {
-  if (request.method !== "GET") {
-    sendJson(response, 405, { error: "Метод не підтримується" });
-    return;
-  }
-
   const url = new URL(request.url ?? "/", "http://localhost");
 
-  if (url.pathname === "/") {
-    await sendIndex(response);
-    return;
-  }
-
-  if (url.pathname === "/health") {
+  if (url.pathname === "/health/live" && request.method === "GET") {
     sendJson(response, 200, { status: "ok" });
     return;
   }
 
-  if (url.pathname !== "/api/users") {
+  if (url.pathname === "/health/ready" && request.method === "GET") {
+    const ready = await readiness();
+    sendJson(response, ready ? 200 : 503, { status: ready ? "ready" : "not_ready" });
+    return;
+  }
+
+  if (url.pathname === "/login" && request.method === "GET") {
+    await sendFile(response, LOGIN_FILE, "text/html; charset=utf-8");
+    return;
+  }
+
+  if (url.pathname === "/app.js" && request.method === "GET") {
+    await sendFile(response, APP_SCRIPT_FILE, "text/javascript; charset=utf-8");
+    return;
+  }
+
+  if (url.pathname === "/login.js" && request.method === "GET") {
+    await sendFile(response, LOGIN_SCRIPT_FILE, "text/javascript; charset=utf-8");
+    return;
+  }
+
+  if (url.pathname === "/api/login" && request.method === "POST") {
+    await handleLogin(request, response, auth);
+    return;
+  }
+
+  if (url.pathname === "/api/logout" && request.method === "POST") {
+    if (!(await auth.isAuthenticated(request))) {
+      sendJson(response, 401, { error: "Необхідна авторизація" });
+      return;
+    }
+    await auth.logout(request, response);
+    sendJson(response, 200, { ok: true });
+    return;
+  }
+
+  if (url.pathname === "/" && request.method === "GET") {
+    if (!(await auth.isAuthenticated(request))) {
+      await sendFile(response, LOGIN_FILE, "text/html; charset=utf-8");
+      return;
+    }
+    await sendFile(response, INDEX_FILE, "text/html; charset=utf-8");
+    return;
+  }
+
+  if (url.pathname !== "/api/users" || request.method !== "GET") {
     sendJson(response, 404, { error: "Сторінку не знайдено" });
+    return;
+  }
+
+  if (!(await auth.isAuthenticated(request))) {
+    sendJson(response, 401, { error: "Необхідна авторизація" });
     return;
   }
 
   const page = getPaginationValue(url.searchParams.get("page"), 1);
   const pageSize = Math.min(getPaginationValue(url.searchParams.get("pageSize"), 20), 100);
   const search = (url.searchParams.get("search") ?? "").trim().slice(0, 100);
-  const offset = (page - 1) * pageSize;
-
-  const [countResult, usersResult] = await Promise.all([
-    pool.query<{ count: string }>(
-      `
-      SELECT COUNT(*)::text AS count
-      FROM users
-      WHERE $1 = ''
-         OR phone_number ILIKE '%' || $1 || '%'
-         OR full_name ILIKE '%' || $1 || '%'
-         OR telegram_username ILIKE '%' || $1 || '%'
-         OR institution ILIKE '%' || $1 || '%'
-         OR course ILIKE '%' || $1 || '%'
-         OR COALESCE(array_to_string(trainings, ' '), '') ILIKE '%' || $1 || '%'
-         OR discovery_source ILIKE '%' || $1 || '%'
-         OR telegram_user_id::text ILIKE '%' || $1 || '%'
-      `,
-      [search],
-    ),
-    pool.query<UserRow>(
-      `
-      SELECT
-          id,
-          telegram_user_id AS "telegramUserId",
-          phone_number AS "phoneNumber",
-          full_name AS name,
-          telegram_username AS "telegramUsername",
-          institution,
-          course,
-          trainings,
-          discovery_source AS "discoverySource",
-          personal_data_consent AS "personalDataConsent",
-          event_rules_consent AS "eventRulesConsent",
-          created_at AS "createdAt",
-          updated_at AS "updatedAt"
-      FROM users
-      WHERE $1 = ''
-         OR phone_number ILIKE '%' || $1 || '%'
-         OR full_name ILIKE '%' || $1 || '%'
-         OR telegram_username ILIKE '%' || $1 || '%'
-         OR institution ILIKE '%' || $1 || '%'
-         OR course ILIKE '%' || $1 || '%'
-         OR COALESCE(array_to_string(trainings, ' '), '') ILIKE '%' || $1 || '%'
-         OR discovery_source ILIKE '%' || $1 || '%'
-         OR telegram_user_id::text ILIKE '%' || $1 || '%'
-      ORDER BY created_at DESC, id DESC
-      LIMIT $2 OFFSET $3
-      `,
-      [search, pageSize, offset],
-    ),
-  ]);
-
-  const total = Number(countResult.rows[0]?.count ?? 0);
+  const result = await createUsersRepository(pool).list({ page, pageSize, search });
   sendJson(response, 200, {
-    users: usersResult.rows,
+    users: result.users.map((user) => ({
+      ...user,
+      trainingDisplay: (user.trainingIds ?? []).map((id) => {
+        const training = TRAININGS.find((candidate) => candidate.id === id);
+        return training ? getTrainingLabel(training) : id;
+      }),
+    })),
     pagination: {
       page,
       pageSize,
-      total,
-      totalPages: Math.max(1, Math.ceil(total / pageSize)),
+      total: result.total,
+      totalPages: Math.max(1, Math.ceil(result.total / pageSize)),
     },
   });
 }
 
 export function startWebServer(
   pool: Pool,
-  host: string,
-  port: number,
+  settings: Settings,
+  readiness: () => Promise<boolean>,
 ): Promise<ReturnType<typeof createServer>> {
+  const auth = createAdminAuth(settings, pool);
   const server = createServer((request, response) => {
-    void handleRequest(request, response, pool).catch((error: unknown) => {
-      console.error("Помилка веб-запиту", error);
-      if (!response.headersSent) {
-        sendJson(response, 500, { error: "Внутрішня помилка сервера" });
-      } else {
-        response.destroy();
-      }
+    void handleRequest(request, response, pool, settings, auth, readiness).catch(() => {
+      if (!response.headersSent) sendJson(response, 500, { error: "Внутрішня помилка сервера" });
+      else response.destroy();
     });
   });
 
-  return new Promise((resolve, reject) => {
+  return new Promise((resolvePromise, reject) => {
     server.once("error", reject);
-    server.listen(port, host, () => {
+    server.listen(settings.webPort, settings.webHost, () => {
       server.off("error", reject);
-      console.info(`Веб-інтерфейс запущений: http://localhost:${port}`);
-      resolve(server);
+      console.info(`Веб-інтерфейс BTW запущений на порту ${settings.webPort}`);
+      resolvePromise(server);
     });
   });
 }
 
 export function stopWebServer(server: ReturnType<typeof createServer>): Promise<void> {
-  return new Promise((resolve, reject) => {
-    server.close((error) => (error ? reject(error) : resolve()));
+  return new Promise((resolvePromise, reject) => {
+    if (!server.listening) {
+      resolvePromise();
+      return;
+    }
+    server.close((error) => (error ? reject(error) : resolvePromise()));
   });
 }

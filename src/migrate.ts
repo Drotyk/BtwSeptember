@@ -14,6 +14,13 @@ async function main(): Promise<void> {
 }
 
 main().catch((error: unknown) => {
-  console.error("Помилка виконання міграцій", error);
+  const errorName = error instanceof Error ? error.name : "UnknownError";
+  const errorCode =
+    typeof error === "object" && error !== null && "code" in error ? String(error.code) : undefined;
+  const syscall =
+    typeof error === "object" && error !== null && "syscall" in error
+      ? String(error.syscall)
+      : undefined;
+  console.error("Помилка виконання міграцій", { errorName, errorCode, syscall });
   process.exitCode = 1;
 });

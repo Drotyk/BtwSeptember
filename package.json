@@ -1,23 +1,43 @@
 {
-  "name": "btw-september-bot",
+  "name": "btw-bot",
   "version": "1.0.0",
   "private": true,
   "type": "module",
   "scripts": {
-    "build": "tsc",
     "start": "node dist/main.js",
     "dev": "tsx src/main.ts",
-    "migrate:up": "tsx src/migrate.ts"
+    "migrate:up": "tsx src/migrate.ts",
+    "admin:hash": "tsx scripts/hash-password.ts",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "lint": "eslint .",
+    "lint:fix": "eslint . --fix",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "test:coverage": "vitest run --coverage",
+    "build": "tsc",
+    "check": "npm run format:check && npm run lint && npm run typecheck && npm test && npm run build"
   },
   "dependencies": {
+    "argon2": "^0.45.1",
     "dotenv": "^16.4.7",
     "grammy": "^1.38.3",
     "pg": "^8.13.1"
   },
   "devDependencies": {
+    "@eslint/js": "^10.0.1",
     "@types/node": "^22.10.2",
     "@types/pg": "^8.11.10",
+    "@types/supertest": "^7.2.1",
+    "@vitest/coverage-v8": "^4.1.10",
+    "eslint": "^10.8.1",
+    "eslint-config-prettier": "^10.1.8",
+    "eslint-plugin-unused-imports": "^4.4.1",
+    "prettier": "^3.9.6",
+    "supertest": "^7.2.2",
     "tsx": "^4.19.2",
-    "typescript": "^5.7.2"
+    "typescript": "^5.7.2",
+    "typescript-eslint": "^8.67.0",
+    "vitest": "^4.1.10"
   }
 }
