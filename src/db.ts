@@ -8,6 +8,15 @@ export function createPool(databaseUrl: string): Pool {
   });
 }
 
+export async function userExists(pool: Pool, telegramUserId: number): Promise<boolean> {
+  const result = await pool.query(
+    "SELECT 1 FROM users WHERE telegram_user_id = $1 LIMIT 1",
+    [telegramUserId],
+  );
+
+  return (result.rowCount ?? 0) > 0;
+}
+
 export async function saveUser(
   pool: Pool,
   telegramUserId: number,
