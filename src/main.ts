@@ -77,6 +77,12 @@ async function main(): Promise<void> {
 
 main().catch((error: unknown) => {
   const errorName = error instanceof Error ? error.name : "UnknownError";
-  console.error("BTW не вдалося запустити", { errorName });
+  const errorCode =
+    typeof error === "object" && error !== null && "code" in error ? String(error.code) : undefined;
+  const syscall =
+    typeof error === "object" && error !== null && "syscall" in error
+      ? String(error.syscall)
+      : undefined;
+  console.error("BTW не вдалося запустити", { errorName, errorCode, syscall });
   process.exitCode = 1;
 });
