@@ -83,6 +83,10 @@ main().catch((error: unknown) => {
     typeof error === "object" && error !== null && "syscall" in error
       ? String(error.syscall)
       : undefined;
-  console.error("BTW не вдалося запустити", { errorName, errorCode, syscall });
+  const hostname =
+    typeof error === "object" && error !== null && "hostname" in error
+      ? String(error.hostname)
+      : undefined;
+  console.error("BTW не вдалося запустити", { errorName, errorCode, syscall, hostname });
   process.exitCode = 1;
 });
