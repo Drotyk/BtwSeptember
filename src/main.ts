@@ -9,7 +9,7 @@ async function main(): Promise<void> {
   const pool = createPool(settings.databaseUrl);
   await runMigrations(pool);
 
-  const bot = createBot(settings.botToken, pool);
+  const bot = createBot(settings.botToken, pool, settings.chatInviteLink);
   const webServer = await startWebServer(pool, settings.webHost, settings.webPort);
 
   const shutdown = async (signal: string): Promise<void> => {

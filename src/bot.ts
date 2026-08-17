@@ -1,7 +1,7 @@
 import { Bot, Context, InlineKeyboard, Keyboard, session, SessionFlavor } from "grammy";
 import type { Pool } from "pg";
 
-import { saveUser } from "./db.js";
+import { saveUser, userExists } from "./db.js";
 import { COURSES, DISCOVERY_SOURCES, getTrainingDate, INSTITUTIONS, TRAININGS } from "./form.js";
 import { normalizePhone, normalizeTelegramUsername, validateCustomAnswer, validateName } from "./validators.js";
 
@@ -21,6 +21,7 @@ type RegistrationStep =
 
 interface RegistrationState {
   step: RegistrationStep;
+  isEditing?: boolean;
   phoneNumber?: string;
   name?: string;
   telegramUsername?: string;
@@ -135,6 +136,17 @@ function trainingKeyboard(selected: number[] = []): InlineKeyboard {
   return keyboard;
 }
 
+function registrationActionsKeyboard(chatInviteLink: string): InlineKeyboard {
+  const keyboard = new InlineKeyboard();
+
+  if (chatInviteLink) {
+    keyboard.url("Приєднатися до чату", chatInviteLink).row();
+  }
+
+  keyboard.text("Редагувати анкету", "registration:edit");
+  return keyboard;
+}
+
 function hasStep(ctx: BotContext, step: RegistrationStep): boolean {
   return ctx.session.registration?.step === step;
 }
@@ -237,7 +249,11 @@ async function goBack(ctx: BotContext): Promise<void> {
   }
 }
 
-async function finishRegistration(ctx: BotContext, pool: Pool): Promise<void> {
+async function finishRegistration(
+  ctx: BotContext,
+  pool: Pool,
+  chatInviteLink: string,
+): Promise<void> {
   const registration = ctx.session.registration;
   if (
     !ctx.from ||
@@ -278,34 +294,66 @@ async function finishRegistration(ctx: BotContext, pool: Pool): Promise<void> {
   }
 
   ctx.session = {};
+  const successMessage = [
+    registration.isEditing
+      ? "Готово! Вашу анкету оновлено."
+      : "Готово! Вашу анкету збережено. Дякуємо за реєстрацію на BTW’26!",
+    "",
+    `ПІ: ${registration.name}`,
+    `Телефон: ${registration.phoneNumber}`,
+    `Telegram: ${registration.telegramUsername}`,
+    `Заклад: ${registration.institution}`,
+    `Курс: ${registration.course}`,
+    "Обрані тренінги:",
+    ...selectedTrainingDates(registration).map((date) => `• ${date}`),
+    `Звідки дізналися: ${registration.discoverySource}`,
+  ];
+
   await ctx.reply(
-    [
-      "Готово! Вашу анкету збережено. Дякуємо за реєстрацію на BTW’26!",
-      "",
-      `ПІ: ${registration.name}`,
-      `Телефон: ${registration.phoneNumber}`,
-      `Telegram: ${registration.telegramUsername}`,
-      `Заклад: ${registration.institution}`,
-      `Курс: ${registration.course}`,
-      "Обрані тренінги:",
-      ...selectedTrainingDates(registration).map((date) => `• ${date}`),
-      `Звідки дізналися: ${registration.discoverySource}`,
-    ].join("\n"),
-    { reply_markup: removeKeyboard },
+    successMessage.join("\n"),
+    { reply_markup: registrationActionsKeyboard(chatInviteLink) },
   );
 }
 
-export function createBot(token: string, pool: Pool): Bot<BotContext> {
+async function startRegistration(ctx: BotContext, isEditing = false): Promise<void> {
+  ctx.session = { registration: { step: "name", isEditing } };
+  await ctx.reply(
+    isEditing
+      ? "Відредагуємо Вашу анкету. Введіть прізвище та ім’я (без по батькові)."
+      : "Вітаю! Заповнимо анкету учасника BEST Training Week.\n\n" +
+          "Ваше прізвище та ім’я (без по батькові)?",
+  );
+}
+
+export function createBot(
+  token: string,
+  pool: Pool,
+  chatInviteLink = "",
+): Bot<BotContext> {
   const bot = new Bot<BotContext>(token);
 
   bot.use(session({ initial: (): SessionData => ({}) }));
 
   bot.command("start", async (ctx) => {
-    ctx.session = { registration: { step: "name" } };
-    await ctx.reply(
-      "Вітаю! Заповнимо анкету учасника BEST Training Week.\n\n" +
-        "Ваше прізвище та ім’я (без по батькові)?",
-    );
+    if (!ctx.from) return;
+
+    try {
+      if (await userExists(pool, ctx.from.id)) {
+        ctx.session = {};
+        await ctx.reply(
+          "Ви вже заповнювали анкету. Повторна реєстрація неможлива, але Ви можете відредагувати свої дані.",
+          { reply_markup: registrationActionsKeyboard(chatInviteLink) },
+        );
+        return;
+      }
+
+      await startRegistration(ctx);
+    } catch (error) {
+      console.error("Не вдалося перевірити реєстрацію користувача", error);
+      await ctx.reply("Не вдалося перевірити дані. Спробуйте ще раз через хвилину.", {
+        reply_markup: removeKeyboard,
+      });
+    }
   });
 
   bot.command("cancel", async (ctx) => {
@@ -320,6 +368,12 @@ export function createBot(token: string, pool: Pool): Bot<BotContext> {
   });
 
   bot.on("callback_query:data", async (ctx) => {
+    if (ctx.callbackQuery.data === "registration:edit") {
+      await ctx.answerCallbackQuery();
+      await startRegistration(ctx, true);
+      return;
+    }
+
     if (!hasStep(ctx, "trainings")) {
       await ctx.answerCallbackQuery({ text: "Ця анкета вже завершена або скасована." });
       return;
@@ -597,7 +651,7 @@ export function createBot(token: string, pool: Pool): Bot<BotContext> {
         return;
       }
 
-      await finishRegistration(ctx, pool);
+      await finishRegistration(ctx, pool, chatInviteLink);
     }
   });
 

@@ -5,6 +5,7 @@ export interface Settings {
   databaseUrl: string;
   webHost: string;
   webPort: number;
+  chatInviteLink: string;
 }
 
 export function getDatabaseUrl(): string {
@@ -28,6 +29,7 @@ export function getSettings(): Settings {
   }
 
   const webHost = process.env.WEB_HOST?.trim() || "127.0.0.1";
+  const chatInviteLink = process.env.CHAT_INVITE_LINK?.trim() || "";
 
-  return { botToken, databaseUrl: getDatabaseUrl(), webHost, webPort };
+  return { botToken, databaseUrl: getDatabaseUrl(), webHost, webPort, chatInviteLink };
 }
