@@ -147,6 +147,10 @@ function registrationActionsKeyboard(chatInviteLink: string): InlineKeyboard {
   return keyboard;
 }
 
+function restartRegistrationKeyboard(): InlineKeyboard {
+  return new InlineKeyboard().text("Почати анкету знову", "registration:restart");
+}
+
 function hasStep(ctx: BotContext, step: RegistrationStep): boolean {
   return ctx.session.registration?.step === step;
 }
@@ -325,6 +329,23 @@ async function startRegistration(ctx: BotContext, isEditing = false): Promise<vo
   );
 }
 
+async function restartRegistration(
+  ctx: BotContext,
+  pool: Pool,
+  chatInviteLink: string,
+): Promise<void> {
+  if (ctx.from && (await userExists(pool, ctx.from.id))) {
+    ctx.session = {};
+    await ctx.reply(
+      "Ви вже заповнювали анкету. Для зміни даних скористайтеся редагуванням.",
+      { reply_markup: registrationActionsKeyboard(chatInviteLink) },
+    );
+    return;
+  }
+
+  await startRegistration(ctx);
+}
+
 export function createBot(
   token: string,
   pool: Pool,
@@ -371,6 +392,12 @@ export function createBot(
     if (ctx.callbackQuery.data === "registration:edit") {
       await ctx.answerCallbackQuery();
       await startRegistration(ctx, true);
+      return;
+    }
+
+    if (ctx.callbackQuery.data === "registration:restart") {
+      await ctx.answerCallbackQuery();
+      await restartRegistration(ctx, pool, chatInviteLink);
       return;
     }
 
@@ -614,9 +641,18 @@ export function createBot(
 
     if (hasStep(ctx, "personalConsent")) {
       if (text === NO_CONSENT) {
+        const wasEditing = ctx.session.registration?.isEditing;
         ctx.session = {};
-        await ctx.reply("Без згоди анкету неможливо завершити. Дані не збережено.", {
-          reply_markup: removeKeyboard,
+        await ctx.reply(
+          wasEditing
+            ? "Ви не надали згоду на обробку персональних даних. Зміни не збережено, попередня анкета залишилася без змін."
+            : "Без згоди анкету неможливо завершити. Дані не збережено.",
+          {
+            reply_markup: removeKeyboard,
+          },
+        );
+        await ctx.reply("За бажанням можете спробувати заповнити анкету ще раз.", {
+          reply_markup: restartRegistrationKeyboard(),
         });
         return;
       }
@@ -637,9 +673,16 @@ export function createBot(
 
     if (hasStep(ctx, "rulesConsent")) {
       if (text === NO_CONSENT) {
+        const wasEditing = ctx.session.registration?.isEditing;
         ctx.session = {};
-        await ctx.reply("Без згоди з правилами захід неможливий. Дані не збережено.", {
-          reply_markup: removeKeyboard,
+        await ctx.reply(
+          wasEditing
+            ? "Ви не погодилися з правилами заходу. Зміни не збережено, попередня анкета залишилася без змін."
+            : "Без згоди з правилами захід неможливий. Дані не збережено.",
+          { reply_markup: removeKeyboard },
+        );
+        await ctx.reply("За бажанням можете спробувати заповнити анкету ще раз.", {
+          reply_markup: restartRegistrationKeyboard(),
         });
         return;
       }
