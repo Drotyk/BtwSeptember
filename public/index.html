@@ -4,199 +4,996 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>BTW — анкети</title>
+    <meta name="description" content="Захищений перегляд і керування збереженими анкетами BTW" />
     <style>
+      /* ─── Design tokens ──────────────────────────────────────────── */
       :root {
-        color-scheme: light;
-        --background: #f1f1f1;
-        --surface: #fff;
-        --text: #111;
-        --muted: #666;
-        --border: #cfcfcf;
+        --bg: #0a0a0a;
+        --surface: #111111;
+        --surface-table: #141414;
+        --surface-raised: #1c1c1c;
+        --border: #2a2a2a;
+        --border-subtle: #1f1f1f;
+        --text-primary: #f0f0f0;
+        --text-secondary: #808080;
+        --text-disabled: #404040;
+        --accent: #d4d4d4;
+        --accent-hover: #ffffff;
+        --accent-subtle: rgba(255, 255, 255, 0.07);
+        --success: #b0b0b0;
+        --success-subtle: rgba(255, 255, 255, 0.06);
+        --warning: #888888;
+        --warning-subtle: rgba(255, 255, 255, 0.04);
+        --error: #6b6b6b;
+        --error-subtle: rgba(255, 255, 255, 0.04);
+        --radius-sm: 6px;
+        --radius: 8px;
+        --radius-lg: 12px;
+        --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.6);
+        --shadow: 0 4px 16px rgba(0, 0, 0, 0.7);
+        --shadow-lg: 0 8px 32px rgba(0, 0, 0, 0.8);
+        --font-stack:
+          Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+        --transition: 150ms ease;
       }
-      * {
+
+      /* ─── Reset & base ────────────────────────────────────────────── */
+      *,
+      *::before,
+      *::after {
         box-sizing: border-box;
-      }
-      body {
         margin: 0;
-        background: var(--background);
-        color: var(--text);
-        font-family: Arial, Helvetica, sans-serif;
-        line-height: 1.4;
+        padding: 0;
       }
-      main {
-        width: min(1440px, calc(100% - 32px));
+
+      html {
+        color-scheme: dark;
+      }
+
+      body {
+        background: var(--bg);
+        color: var(--text-primary);
+        font-family: var(--font-stack);
+        font-size: 14px;
+        line-height: 1.5;
+        -webkit-font-smoothing: antialiased;
+      }
+
+      body.drawer-open {
+        overflow: hidden;
+      }
+
+      /* ─── Layout ──────────────────────────────────────────────────── */
+      .page-wrapper {
+        width: calc(100% - 48px);
+        max-width: 1600px;
         margin: 0 auto;
-        padding: 32px 0;
+        padding: 32px 0 48px;
       }
-      header {
+
+      /* ─── Header ──────────────────────────────────────────────────── */
+      .page-header {
         display: flex;
         align-items: flex-start;
         justify-content: space-between;
         gap: 16px;
+        margin-bottom: 32px;
       }
-      h1 {
-        margin: 0;
-        font-size: 28px;
-      }
-      .subtitle {
-        margin: 8px 0 28px;
-        color: var(--muted);
-      }
-      .toolbar,
-      .table-wrap,
-      .footer {
-        border: 1px solid var(--border);
-        background: var(--surface);
-      }
-      .toolbar {
+
+      .page-header__info {
         display: flex;
-        gap: 12px;
-        padding: 16px;
-        margin-bottom: 16px;
+        flex-direction: column;
+        gap: 4px;
       }
-      input,
-      button {
+
+      .page-title {
+        font-size: 24px;
+        font-weight: 700;
+        letter-spacing: -0.02em;
+        color: var(--text-primary);
+      }
+
+      .page-subtitle {
+        font-size: 14px;
+        color: var(--text-secondary);
+      }
+
+      .page-total {
+        display: inline-flex;
+        align-items: center;
+        margin-top: 8px;
+        padding: 2px 10px;
+        background: var(--accent-subtle);
+        border: 1px solid var(--border);
+        border-radius: 20px;
+        font-size: 12px;
+        font-weight: 600;
+        color: var(--text-secondary);
+        letter-spacing: 0.02em;
+      }
+
+      /* ─── Buttons ─────────────────────────────────────────────────── */
+      .btn {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 6px;
         min-height: 40px;
-        border: 1px solid #999;
-        border-radius: 4px;
-        background: var(--surface);
-        color: var(--text);
-        font: inherit;
+        padding: 0 16px;
+        border-radius: var(--radius-sm);
+        font-family: var(--font-stack);
+        font-size: 14px;
+        font-weight: 500;
+        cursor: pointer;
+        transition:
+          background var(--transition),
+          color var(--transition),
+          border-color var(--transition),
+          opacity var(--transition);
+        border: 1px solid transparent;
+        white-space: nowrap;
       }
-      input {
-        width: min(500px, 100%);
+
+      .btn:focus-visible {
+        outline: 2px solid var(--accent);
+        outline-offset: 2px;
+      }
+
+      .btn:disabled {
+        opacity: 0.4;
+        cursor: not-allowed;
+        pointer-events: none;
+      }
+
+      .btn-primary {
+        background: var(--accent);
+        color: #0a0a0a;
+      }
+
+      .btn-primary:hover:not(:disabled) {
+        background: var(--accent-hover);
+        color: #000;
+      }
+
+      .btn-secondary {
+        background: transparent;
+        color: var(--text-secondary);
+        border-color: var(--border);
+      }
+
+      .btn-secondary:hover:not(:disabled) {
+        background: var(--surface-raised);
+        color: var(--text-primary);
+        border-color: var(--accent);
+      }
+
+      .btn-ghost {
+        background: transparent;
+        color: var(--text-secondary);
+        border-color: transparent;
         padding: 0 12px;
       }
-      button {
-        padding: 0 16px;
+
+      .btn-ghost:hover:not(:disabled) {
+        background: var(--surface-raised);
+        color: var(--text-primary);
+      }
+
+      .btn-open {
+        background: var(--accent-subtle);
+        color: var(--accent);
+        border-color: var(--border);
+        min-height: 32px;
+        padding: 0 12px;
+        font-size: 13px;
+      }
+
+      .btn-open:hover:not(:disabled) {
+        background: var(--accent);
+        color: #0a0a0a;
+      }
+
+      .btn-sm {
+        min-height: 32px;
+        padding: 0 12px;
+        font-size: 13px;
+      }
+
+      /* ─── Search panel ────────────────────────────────────────────── */
+      .search-panel {
+        margin-bottom: 16px;
+      }
+
+      .search-form {
+        display: flex;
+        gap: 8px;
+        align-items: center;
+      }
+
+      .search-input-wrap {
+        position: relative;
+        flex: 1;
+        min-width: 0;
+      }
+
+      .search-input {
+        width: 100%;
+        min-height: 40px;
+        padding: 0 40px 0 14px;
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-radius: var(--radius-sm);
+        color: var(--text-primary);
+        font-family: var(--font-stack);
+        font-size: 14px;
+        transition: border-color var(--transition);
+        /* remove native clear button in webkit */
+        -webkit-appearance: none;
+      }
+
+      .search-input::placeholder {
+        color: var(--text-disabled);
+      }
+
+      .search-input:focus {
+        outline: none;
+        border-color: var(--accent);
+        box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.05);
+      }
+
+      /* remove native clear button */
+      .search-input::-webkit-search-cancel-button {
+        display: none;
+      }
+
+      .search-clear {
+        position: absolute;
+        right: 8px;
+        top: 50%;
+        transform: translateY(-50%);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 24px;
+        height: 24px;
+        background: transparent;
+        border: none;
+        border-radius: 50%;
         cursor: pointer;
+        color: var(--text-secondary);
+        transition: color var(--transition);
+        font-size: 16px;
+        line-height: 1;
       }
-      button:hover:not(:disabled) {
-        background: var(--text);
-        color: var(--surface);
+
+      .search-clear:hover {
+        color: var(--text-primary);
       }
-      button:disabled {
-        color: var(--muted);
-        cursor: default;
+
+      .search-clear:focus-visible {
+        outline: 2px solid var(--accent);
+        outline-offset: 1px;
       }
-      .table-wrap {
+
+      /* ─── Table section ───────────────────────────────────────────── */
+      .table-section {
+        background: var(--surface-table);
+        border: 1px solid var(--border);
+        border-radius: var(--radius-lg);
+        overflow: hidden;
+      }
+
+      /* ─── Skeleton ────────────────────────────────────────────────── */
+      .skeleton-wrap {
+        padding: 8px 0;
+      }
+
+      .skeleton-row {
+        display: flex;
+        align-items: center;
+        gap: 16px;
+        padding: 16px 20px;
+        border-bottom: 1px solid var(--border-subtle);
+      }
+
+      .skeleton-row:last-child {
+        border-bottom: none;
+      }
+
+      .skeleton-cell {
+        height: 14px;
+        border-radius: 4px;
+        background: linear-gradient(
+          90deg,
+          var(--surface-raised) 25%,
+          #252525 50%,
+          var(--surface-raised) 75%
+        );
+        background-size: 400% 100%;
+        animation: shimmer 1.4s ease infinite;
+        flex-shrink: 0;
+      }
+
+      @keyframes shimmer {
+        0% {
+          background-position: 100% 0;
+        }
+        100% {
+          background-position: -100% 0;
+        }
+      }
+
+      /* ─── Table ───────────────────────────────────────────────────── */
+      .table-scroll {
         overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
       }
+
       table {
         width: 100%;
         border-collapse: collapse;
-        min-width: 1600px;
+        table-layout: fixed;
       }
-      th,
-      td {
-        padding: 12px 14px;
+
+      /* Column widths */
+      .col-participant {
+        width: 200px;
+      }
+      .col-contacts {
+        width: 180px;
+      }
+      .col-education {
+        width: 200px;
+      }
+      .col-trainings {
+        width: 120px;
+      }
+      .col-source {
+        width: 160px;
+      }
+      .col-submitted {
+        width: 140px;
+      }
+      .col-actions {
+        width: 100px;
+      }
+
+      thead {
+        position: sticky;
+        top: 0;
+        z-index: 10;
+      }
+
+      th {
+        padding: 12px 16px;
+        background: var(--surface);
         border-bottom: 1px solid var(--border);
         text-align: left;
+        font-size: 11px;
+        font-weight: 600;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        color: var(--text-secondary);
+        white-space: nowrap;
+        user-select: none;
+      }
+
+      td {
+        padding: 12px 16px;
+        border-bottom: 1px solid var(--border-subtle);
+        vertical-align: middle;
+        max-width: 0; /* enables text-overflow with table-layout:fixed */
+      }
+
+      tbody tr {
+        transition: background var(--transition);
+      }
+
+      tbody tr:hover {
+        background: var(--surface-raised);
+      }
+
+      tbody tr:last-child td {
+        border-bottom: none;
+      }
+
+      /* Cell content helpers */
+      .cell-primary {
+        font-size: 14px;
+        font-weight: 500;
+        color: var(--text-primary);
+        overflow: hidden;
+        text-overflow: ellipsis;
         white-space: nowrap;
       }
-      td.trainings {
-        max-width: 460px;
-        white-space: pre-line;
-      }
-      th {
-        background: #e7e7e7;
+
+      .cell-secondary {
         font-size: 12px;
-        text-transform: uppercase;
-        letter-spacing: 0.06em;
+        color: var(--text-secondary);
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+        margin-top: 2px;
       }
-      .empty,
-      .error {
-        padding: 28px;
-        color: var(--muted);
+
+      .cell-two-line {
+        line-height: 1.3;
+      }
+
+      /* Training badge */
+      .training-badge {
+        display: inline-flex;
+        align-items: center;
+        padding: 3px 10px;
+        background: var(--accent-subtle);
+        border: 1px solid var(--border);
+        border-radius: 20px;
+        font-size: 12px;
+        font-weight: 600;
+        color: var(--accent);
+        white-space: nowrap;
+      }
+
+      .training-none {
+        color: var(--text-disabled);
+        font-size: 13px;
+      }
+
+      /* ─── States ──────────────────────────────────────────────────── */
+      .state-block {
+        padding: 56px 24px;
         text-align: center;
       }
-      .footer {
+
+      .state-block__icon {
+        font-size: 40px;
+        margin-bottom: 16px;
+        opacity: 0.5;
+      }
+
+      .state-block__title {
+        font-size: 16px;
+        font-weight: 600;
+        color: var(--text-primary);
+        margin-bottom: 8px;
+      }
+
+      .state-block__desc {
+        font-size: 14px;
+        color: var(--text-secondary);
+        margin-bottom: 20px;
+      }
+
+      /* ─── Pagination ──────────────────────────────────────────────── */
+      .pagination-bar {
         display: flex;
         align-items: center;
         justify-content: space-between;
         gap: 16px;
-        padding: 12px 16px;
-        border-top: 0;
+        padding: 12px 20px;
+        background: var(--surface-table);
+        border: 1px solid var(--border);
+        border-top: none;
+        border-radius: 0 0 var(--radius-lg) var(--radius-lg);
       }
-      .meta {
-        color: var(--muted);
-        font-size: 14px;
+
+      .pagination-meta {
+        font-size: 13px;
+        color: var(--text-secondary);
       }
-      .pagination {
+
+      .pagination-controls {
         display: flex;
         gap: 8px;
       }
-      @media (max-width: 640px) {
-        main {
-          width: min(100% - 20px, 1440px);
-          padding: 24px 0;
+
+      /* ─── Mobile cards ────────────────────────────────────────────── */
+      .cards-list {
+        display: none;
+        flex-direction: column;
+        gap: 12px;
+      }
+
+      .user-card {
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-radius: var(--radius);
+        padding: 16px;
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+      }
+
+      .user-card__header {
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        gap: 12px;
+      }
+
+      .user-card__name {
+        font-size: 15px;
+        font-weight: 600;
+        color: var(--text-primary);
+      }
+
+      .user-card__id {
+        font-size: 11px;
+        color: var(--text-secondary);
+        margin-top: 2px;
+      }
+
+      .user-card__rows {
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+      }
+
+      .user-card__row {
+        display: flex;
+        align-items: flex-start;
+        gap: 8px;
+        font-size: 13px;
+      }
+
+      .user-card__label {
+        color: var(--text-secondary);
+        min-width: 80px;
+        flex-shrink: 0;
+        font-size: 12px;
+      }
+
+      .user-card__value {
+        color: var(--text-primary);
+        word-break: break-word;
+      }
+
+      /* ─── Drawer ──────────────────────────────────────────────────── */
+      .drawer-overlay {
+        position: fixed;
+        inset: 0;
+        background: rgba(0, 0, 0, 0.7);
+        z-index: 100;
+        opacity: 0;
+        transition: opacity var(--transition);
+        pointer-events: none;
+      }
+
+      .drawer-overlay.is-visible {
+        opacity: 1;
+        pointer-events: auto;
+      }
+
+      .drawer {
+        position: fixed;
+        top: 0;
+        right: 0;
+        bottom: 0;
+        width: min(560px, 100vw);
+        background: var(--surface);
+        border-left: 1px solid var(--border);
+        z-index: 101;
+        display: flex;
+        flex-direction: column;
+        transform: translateX(100%);
+        transition: transform 200ms ease;
+        box-shadow: var(--shadow-lg);
+      }
+
+      .drawer[aria-hidden="false"] {
+        transform: translateX(0);
+      }
+
+      .drawer-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 16px;
+        padding: 20px 24px;
+        border-bottom: 1px solid var(--border);
+        flex-shrink: 0;
+      }
+
+      .drawer-title {
+        font-size: 16px;
+        font-weight: 700;
+        color: var(--text-primary);
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+
+      .drawer-close {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 36px;
+        height: 36px;
+        background: transparent;
+        border: 1px solid var(--border);
+        border-radius: var(--radius-sm);
+        cursor: pointer;
+        color: var(--text-secondary);
+        font-size: 18px;
+        flex-shrink: 0;
+        transition: all var(--transition);
+      }
+
+      .drawer-close:hover {
+        background: var(--surface-raised);
+        color: var(--text-primary);
+      }
+
+      .drawer-close:focus-visible {
+        outline: 2px solid var(--accent);
+        outline-offset: 2px;
+      }
+
+      .drawer-body {
+        flex: 1;
+        overflow-y: auto;
+        padding: 24px;
+      }
+
+      /* Detail sections */
+      .detail-section {
+        margin-bottom: 28px;
+      }
+
+      .detail-section:last-child {
+        margin-bottom: 0;
+      }
+
+      .detail-section__title {
+        font-size: 11px;
+        font-weight: 700;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        color: var(--text-secondary);
+        margin-bottom: 12px;
+        padding-bottom: 8px;
+        border-bottom: 1px solid var(--border-subtle);
+      }
+
+      .detail-rows {
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+      }
+
+      .detail-row {
+        display: flex;
+        gap: 12px;
+        align-items: baseline;
+      }
+
+      .detail-label {
+        font-size: 12px;
+        color: var(--text-secondary);
+        min-width: 140px;
+        flex-shrink: 0;
+      }
+
+      .detail-value {
+        font-size: 14px;
+        color: var(--text-primary);
+        word-break: break-word;
+      }
+
+      /* Training cards in drawer */
+      .training-cards {
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+      }
+
+      .training-card {
+        background: var(--surface-raised);
+        border: 1px solid var(--border-subtle);
+        border-radius: var(--radius);
+        padding: 14px 16px;
+      }
+
+      .training-card__title {
+        font-size: 14px;
+        font-weight: 600;
+        color: var(--text-primary);
+        margin-bottom: 8px;
+        line-height: 1.4;
+      }
+
+      .training-card__meta {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px 16px;
+      }
+
+      .training-card__meta-item {
+        font-size: 12px;
+        color: var(--text-secondary);
+      }
+
+      .training-card__meta-item strong {
+        color: var(--text-primary);
+        font-weight: 500;
+      }
+
+      .training-empty {
+        font-size: 14px;
+        color: var(--text-secondary);
+        font-style: italic;
+      }
+
+      /* Consent badges */
+      .badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 5px;
+        padding: 3px 10px;
+        border-radius: 20px;
+        font-size: 12px;
+        font-weight: 600;
+      }
+
+      .badge-success {
+        background: var(--success-subtle);
+        color: var(--success);
+        border: 1px solid var(--border);
+      }
+
+      .badge-neutral {
+        background: var(--surface-raised);
+        color: var(--text-disabled);
+        border: 1px solid var(--border-subtle);
+      }
+
+      /* ─── Responsive ──────────────────────────────────────────────── */
+      @media (max-width: 768px) {
+        .page-wrapper {
+          width: calc(100% - 24px);
+          padding: 20px 0 36px;
         }
-        .toolbar {
+
+        .page-title {
+          font-size: 20px;
+        }
+
+        .search-form {
+          flex-wrap: wrap;
+        }
+
+        .search-input-wrap {
+          flex-basis: 100%;
+        }
+
+        /* Hide table on mobile, show cards */
+        .table-section,
+        .pagination-bar {
+          display: none;
+        }
+
+        .cards-list {
+          display: flex;
+        }
+
+        .mobile-pagination {
+          display: flex !important;
+        }
+
+        .drawer {
+          width: 100vw;
+        }
+      }
+
+      @media (max-width: 480px) {
+        .page-header {
           flex-direction: column;
         }
-        input {
-          width: 100%;
+      }
+
+      @media (min-width: 769px) {
+        .mobile-pagination {
+          display: none;
         }
-        header {
-          flex-direction: column;
-        }
-        .footer {
-          align-items: flex-start;
-          flex-direction: column;
-        }
+      }
+
+      /* Utility */
+      [hidden] {
+        display: none !important;
       }
     </style>
   </head>
   <body>
-    <main>
-      <header>
-        <div>
-          <h1>Анкети BTW</h1>
-          <p class="subtitle">Захищений перегляд збережених анкет</p>
+    <div class="page-wrapper">
+      <!-- ── Header ─────────────────────────────────────────── -->
+      <header class="page-header">
+        <div class="page-header__info">
+          <h1 class="page-title">Анкети BTW</h1>
+          <p class="page-subtitle">Перегляд і керування збереженими анкетами</p>
+          <span class="page-total" id="total-count" hidden></span>
         </div>
-        <button id="logout" type="button">Вийти</button>
+        <button class="btn btn-ghost" id="logout" type="button" aria-label="Вийти з системи">
+          Вийти
+        </button>
       </header>
-      <form class="toolbar" id="search-form">
-        <input
-          id="search"
-          type="search"
-          placeholder="Пошук за ПІ, телефоном, username, закладом або тренінгом"
-          autocomplete="off"
-        />
-        <button type="submit">Знайти</button>
-      </form>
-      <section class="table-wrap">
-        <table>
-          <thead>
-            <tr>
-              <th>ID</th>
-              <th>ПІ</th>
-              <th>Телефон</th>
-              <th>Telegram</th>
-              <th>Заклад</th>
-              <th>Курс</th>
-              <th>Тренінги</th>
-              <th>Джерело</th>
-              <th>Персональні дані</th>
-              <th>Правила BTW</th>
-              <th>Telegram ID</th>
-              <th>Створено</th>
-              <th>Оновлено</th>
-            </tr>
-          </thead>
-          <tbody id="users-body"></tbody>
-        </table>
-        <div class="empty" id="empty" hidden>Даних не знайдено</div>
-        <div class="error" id="error" hidden>Не вдалося завантажити дані</div>
+
+      <!-- ── Search ─────────────────────────────────────────── -->
+      <section class="search-panel" aria-label="Пошук анкет">
+        <form class="search-form" id="search-form" role="search">
+          <div class="search-input-wrap">
+            <input
+              id="search"
+              class="search-input"
+              type="search"
+              placeholder="Пошук за ПІБ, телефоном, Telegram, закладом або тренінгом"
+              autocomplete="off"
+              aria-label="Пошуковий запит"
+            />
+            <button
+              class="search-clear"
+              id="search-clear"
+              type="button"
+              aria-label="Очистити пошук"
+              hidden
+            >
+              ×
+            </button>
+          </div>
+          <button class="btn btn-primary" type="submit" id="search-btn">Знайти</button>
+        </form>
       </section>
-      <footer class="footer">
-        <div class="meta" id="meta">Завантаження...</div>
-        <div class="pagination">
-          <button id="previous" type="button">Попередня</button
-          ><button id="next" type="button">Наступна</button>
+
+      <!-- ── Table (desktop) ────────────────────────────────── -->
+      <section class="table-section" aria-label="Список анкет" aria-live="polite">
+        <!-- Skeleton -->
+        <div id="skeleton" class="skeleton-wrap" aria-hidden="true">
+          <div class="skeleton-row">
+            <div class="skeleton-cell" style="width: 160px"></div>
+            <div class="skeleton-cell" style="width: 130px"></div>
+            <div class="skeleton-cell" style="width: 160px"></div>
+            <div class="skeleton-cell" style="width: 80px"></div>
+            <div class="skeleton-cell" style="width: 120px"></div>
+            <div class="skeleton-cell" style="width: 100px"></div>
+          </div>
+          <div class="skeleton-row">
+            <div class="skeleton-cell" style="width: 140px"></div>
+            <div class="skeleton-cell" style="width: 150px"></div>
+            <div class="skeleton-cell" style="width: 110px"></div>
+            <div class="skeleton-cell" style="width: 100px"></div>
+            <div class="skeleton-cell" style="width: 140px"></div>
+            <div class="skeleton-cell" style="width: 80px"></div>
+          </div>
+          <div class="skeleton-row">
+            <div class="skeleton-cell" style="width: 180px"></div>
+            <div class="skeleton-cell" style="width: 120px"></div>
+            <div class="skeleton-cell" style="width: 140px"></div>
+            <div class="skeleton-cell" style="width: 90px"></div>
+            <div class="skeleton-cell" style="width: 110px"></div>
+            <div class="skeleton-cell" style="width: 100px"></div>
+          </div>
         </div>
+
+        <!-- Table -->
+        <div class="table-scroll" id="table-scroll" hidden>
+          <table aria-label="Таблиця анкет">
+            <colgroup>
+              <col class="col-participant" />
+              <col class="col-contacts" />
+              <col class="col-education" />
+              <col class="col-trainings" />
+              <col class="col-source" />
+              <col class="col-submitted" />
+              <col class="col-actions" />
+            </colgroup>
+            <thead>
+              <tr>
+                <th scope="col">Учасник</th>
+                <th scope="col">Контакти</th>
+                <th scope="col">Навчання</th>
+                <th scope="col">Тренінги</th>
+                <th scope="col">Джерело</th>
+                <th scope="col">Подано</th>
+                <th scope="col"><span class="visually-hidden">Дії</span></th>
+              </tr>
+            </thead>
+            <tbody id="users-body"></tbody>
+          </table>
+        </div>
+
+        <!-- Empty state -->
+        <div class="state-block" id="empty-state" hidden role="status">
+          <div class="state-block__icon" aria-hidden="true">📋</div>
+          <div class="state-block__title" id="empty-title">Анкет поки немає</div>
+          <div class="state-block__desc" id="empty-desc">Збережені анкети з'являться тут</div>
+          <button class="btn btn-secondary" id="clear-search-btn" hidden>Очистити пошук</button>
+        </div>
+
+        <!-- Error state -->
+        <div class="state-block" id="error-state" hidden role="alert">
+          <div class="state-block__icon" aria-hidden="true">⚠️</div>
+          <div class="state-block__title">Не вдалося завантажити дані</div>
+          <div class="state-block__desc">Перевірте з'єднання або спробуйте ще раз</div>
+          <button class="btn btn-secondary" id="retry-btn">Спробувати ще раз</button>
+        </div>
+      </section>
+
+      <!-- ── Pagination (desktop) ───────────────────────────── -->
+      <footer class="pagination-bar" id="pagination-bar" hidden>
+        <div class="pagination-meta" id="pagination-meta" aria-live="polite"></div>
+        <nav class="pagination-controls" aria-label="Навігація сторінками">
+          <button class="btn btn-secondary btn-sm" id="previous" type="button">← Попередня</button>
+          <button class="btn btn-secondary btn-sm" id="next" type="button">Наступна →</button>
+        </nav>
       </footer>
-    </main>
-    <script src="/app.js" defer></script>
+
+      <!-- ── Mobile cards ───────────────────────────────────── -->
+      <section
+        class="cards-list"
+        id="cards-list"
+        aria-label="Список анкет"
+        aria-live="polite"
+      ></section>
+
+      <!-- Mobile pagination -->
+      <footer
+        class="pagination-bar mobile-pagination"
+        id="mobile-pagination-bar"
+        style="
+          display: none;
+          border-top: 1px solid var(--border);
+          border-radius: var(--radius-lg);
+          margin-top: 12px;
+        "
+        hidden
+      >
+        <div class="pagination-meta" id="mobile-pagination-meta" aria-live="polite"></div>
+        <nav class="pagination-controls" aria-label="Навігація сторінками">
+          <button class="btn btn-secondary btn-sm" id="mobile-previous" type="button">
+            ← Попередня
+          </button>
+          <button class="btn btn-secondary btn-sm" id="mobile-next" type="button">
+            Наступна →
+          </button>
+        </nav>
+      </footer>
+    </div>
+
+    <!-- ── Drawer overlay ──────────────────────────────────── -->
+    <div class="drawer-overlay" id="drawer-overlay" aria-hidden="true"></div>
+
+    <!-- ── Drawer ─────────────────────────────────────────── -->
+    <aside
+      class="drawer"
+      id="drawer"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="drawer-title"
+      aria-hidden="true"
+    >
+      <div class="drawer-header">
+        <h2 class="drawer-title" id="drawer-title">Анкета учасника</h2>
+        <button class="drawer-close" id="drawer-close" type="button" aria-label="Закрити деталі">
+          ×
+        </button>
+      </div>
+      <div class="drawer-body" id="drawer-body"></div>
+    </aside>
+
+    <!-- visually-hidden utility -->
+    <style>
+      .visually-hidden {
+        position: absolute;
+        width: 1px;
+        height: 1px;
+        padding: 0;
+        margin: -1px;
+        overflow: hidden;
+        clip: rect(0, 0, 0, 0);
+        white-space: nowrap;
+        border: 0;
+      }
+    </style>
+
+    <script type="module" src="/app.js"></script>
   </body>
 </html>

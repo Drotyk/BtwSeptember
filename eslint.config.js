@@ -44,5 +44,17 @@ export default tseslint.config(
       "@typescript-eslint/unbound-method": "off",
     },
   },
+  {
+    // ui.test.ts imports public/app.js — an untyped Vanilla JS ES-module.
+    // public/** is excluded from ESLint/TS, so unsafe-* rules cannot apply.
+    files: ["tests/ui.test.ts"],
+    rules: {
+      "@typescript-eslint/no-unsafe-call": "off",
+      "@typescript-eslint/no-unsafe-assignment": "off",
+      "@typescript-eslint/no-unsafe-member-access": "off",
+      "@typescript-eslint/no-unsafe-argument": "off",
+      "@typescript-eslint/no-unsafe-return": "off",
+    },
+  },
   prettier,
 );
