@@ -801,6 +801,242 @@
       [hidden] {
         display: none !important;
       }
+
+      /* ── Tabs ─────────────────────────────────────────────────── */
+      .tab-bar {
+        display: flex;
+        gap: 4px;
+        margin-bottom: 24px;
+        border-bottom: 1px solid var(--border);
+        padding-bottom: 0;
+      }
+
+      .tab-btn {
+        padding: 10px 20px;
+        background: transparent;
+        border: none;
+        border-bottom: 2px solid transparent;
+        color: var(--text-secondary);
+        font-family: var(--font-stack);
+        font-size: 14px;
+        font-weight: 500;
+        cursor: pointer;
+        transition: all var(--transition);
+        white-space: nowrap;
+      }
+
+      .tab-btn:hover {
+        color: var(--text-primary);
+      }
+
+      .tab-btn.is-active {
+        color: var(--text-primary);
+        border-bottom-color: var(--accent);
+      }
+
+      .tab-btn:focus-visible {
+        outline: 2px solid var(--accent);
+        outline-offset: -2px;
+      }
+
+      /* ── Notification panel ──────────────────────────────────── */
+      .notif-panel { display: none; }
+      .notif-panel.is-visible { display: block; }
+
+      .notif-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-bottom: 16px;
+      }
+
+      .notif-header__title {
+        font-size: 16px;
+        font-weight: 600;
+      }
+
+      /* Notification status badges */
+      .status-badge {
+        display: inline-flex;
+        align-items: center;
+        padding: 2px 8px;
+        border-radius: 20px;
+        font-size: 11px;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
+      }
+
+      .status-badge--pending { background: var(--accent-subtle); color: var(--text-secondary); border: 1px solid var(--border); }
+      .status-badge--processing { background: var(--accent-subtle); color: var(--accent); border: 1px solid var(--border); }
+      .status-badge--sent { background: var(--success-subtle); color: var(--success); border: 1px solid var(--border); }
+      .status-badge--partially_sent { background: var(--warning-subtle); color: var(--warning); border: 1px solid var(--border); }
+      .status-badge--failed { background: var(--error-subtle); color: var(--error); border: 1px solid var(--border); }
+      .status-badge--expired { background: var(--surface-raised); color: var(--text-disabled); border: 1px solid var(--border-subtle); }
+      .status-badge--cancelled { background: var(--surface-raised); color: var(--text-disabled); border: 1px solid var(--border-subtle); }
+
+      /* Notification table column widths */
+      .col-notif-title { width: 250px; }
+      .col-notif-audience { width: 140px; }
+      .col-notif-scheduled { width: 140px; }
+      .col-notif-status { width: 120px; }
+      .col-notif-stats { width: 180px; }
+      .col-notif-actions { width: 100px; }
+
+      /* Stat pills */
+      .stat-pills {
+        display: flex;
+        gap: 6px;
+        flex-wrap: wrap;
+      }
+
+      .stat-pill {
+        font-size: 11px;
+        padding: 1px 6px;
+        border-radius: 10px;
+        background: var(--surface-raised);
+        border: 1px solid var(--border-subtle);
+        color: var(--text-secondary);
+        white-space: nowrap;
+      }
+
+      /* ── Create notification modal ───────────────────────────── */
+      .modal-overlay {
+        position: fixed;
+        inset: 0;
+        background: rgba(0, 0, 0, 0.7);
+        z-index: 200;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        opacity: 0;
+        pointer-events: none;
+        transition: opacity var(--transition);
+      }
+
+      .modal-overlay.is-visible {
+        opacity: 1;
+        pointer-events: auto;
+      }
+
+      .modal {
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-radius: var(--radius-lg);
+        width: min(600px, calc(100vw - 32px));
+        max-height: calc(100vh - 64px);
+        overflow-y: auto;
+        box-shadow: var(--shadow-lg);
+      }
+
+      .modal-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 20px 24px;
+        border-bottom: 1px solid var(--border);
+      }
+
+      .modal-title {
+        font-size: 16px;
+        font-weight: 700;
+      }
+
+      .modal-body {
+        padding: 24px;
+        display: flex;
+        flex-direction: column;
+        gap: 16px;
+      }
+
+      .modal-footer {
+        padding: 16px 24px;
+        border-top: 1px solid var(--border);
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+      }
+
+      .form-group {
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+      }
+
+      .form-label {
+        font-size: 12px;
+        font-weight: 600;
+        color: var(--text-secondary);
+        text-transform: uppercase;
+        letter-spacing: 0.06em;
+      }
+
+      .form-input, .form-textarea, .form-select {
+        width: 100%;
+        min-height: 40px;
+        padding: 8px 14px;
+        background: var(--bg);
+        border: 1px solid var(--border);
+        border-radius: var(--radius-sm);
+        color: var(--text-primary);
+        font-family: var(--font-stack);
+        font-size: 14px;
+        transition: border-color var(--transition);
+      }
+
+      .form-textarea {
+        min-height: 100px;
+        resize: vertical;
+      }
+
+      .form-select {
+        appearance: auto;
+      }
+
+      .form-input:focus, .form-textarea:focus, .form-select:focus {
+        outline: none;
+        border-color: var(--accent);
+      }
+
+      .form-row {
+        display: flex;
+        gap: 12px;
+      }
+
+      .form-row > .form-group {
+        flex: 1;
+      }
+
+      .form-radio-group {
+        display: flex;
+        gap: 16px;
+        flex-wrap: wrap;
+      }
+
+      .form-radio {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        cursor: pointer;
+        font-size: 14px;
+        color: var(--text-primary);
+      }
+
+      .form-radio input[type="radio"] {
+        accent-color: var(--accent);
+      }
+
+      .preview-count {
+        font-size: 13px;
+        color: var(--text-secondary);
+        min-height: 20px;
+      }
+
+      .form-error {
+        font-size: 13px;
+        color: var(--error);
+      }
     </style>
   </head>
   <body>
@@ -817,8 +1053,15 @@
         </button>
       </header>
 
-      <!-- ── Search ─────────────────────────────────────────── -->
-      <section class="search-panel" aria-label="Пошук анкет">
+      <!-- Tab navigation -->
+      <nav class="tab-bar" aria-label="Розділи">
+        <button class="tab-btn is-active" id="tab-users" type="button">👥 Анкети</button>
+        <button class="tab-btn" id="tab-notifications" type="button">🔔 Оповіщення</button>
+      </nav>
+
+      <div id="users-panel">
+        <!-- ── Search ─────────────────────────────────────────── -->
+        <section class="search-panel" aria-label="Пошук анкет">
         <form class="search-form" id="search-form" role="search">
           <div class="search-input-wrap">
             <input
@@ -956,6 +1199,72 @@
           </button>
         </nav>
       </footer>
+      </div>
+
+      <!-- ── Notifications panel ────────────────────────────── -->
+      <div class="notif-panel" id="notif-panel">
+        <div class="notif-header">
+          <span class="notif-header__title">Оповіщення</span>
+          <button class="btn btn-primary btn-sm" id="create-notif-btn" type="button">+ Створити</button>
+        </div>
+
+        <section class="table-section" aria-label="Список оповіщень">
+          <div id="notif-skeleton" class="skeleton-wrap" aria-hidden="true">
+            <div class="skeleton-row">
+              <div class="skeleton-cell" style="width: 200px"></div>
+              <div class="skeleton-cell" style="width: 100px"></div>
+              <div class="skeleton-cell" style="width: 120px"></div>
+              <div class="skeleton-cell" style="width: 80px"></div>
+              <div class="skeleton-cell" style="width: 140px"></div>
+            </div>
+            <div class="skeleton-row">
+              <div class="skeleton-cell" style="width: 180px"></div>
+              <div class="skeleton-cell" style="width: 110px"></div>
+              <div class="skeleton-cell" style="width: 100px"></div>
+              <div class="skeleton-cell" style="width: 90px"></div>
+              <div class="skeleton-cell" style="width: 120px"></div>
+            </div>
+          </div>
+
+          <div class="table-scroll" id="notif-table-scroll" hidden>
+            <table aria-label="Таблиця оповіщень">
+              <colgroup>
+                <col class="col-notif-title" />
+                <col class="col-notif-audience" />
+                <col class="col-notif-scheduled" />
+                <col class="col-notif-status" />
+                <col class="col-notif-stats" />
+                <col class="col-notif-actions" />
+              </colgroup>
+              <thead>
+                <tr>
+                  <th scope="col">Повідомлення</th>
+                  <th scope="col">Аудиторія</th>
+                  <th scope="col">Заплановано</th>
+                  <th scope="col">Статус</th>
+                  <th scope="col">Доставка</th>
+                  <th scope="col"><span class="visually-hidden">Дії</span></th>
+                </tr>
+              </thead>
+              <tbody id="notif-body"></tbody>
+            </table>
+          </div>
+
+          <div class="state-block" id="notif-empty" hidden role="status">
+            <div class="state-block__icon" aria-hidden="true">🔔</div>
+            <div class="state-block__title">Оповіщень поки немає</div>
+            <div class="state-block__desc">Створіть перше оповіщення кнопкою вище</div>
+          </div>
+        </section>
+
+        <footer class="pagination-bar" id="notif-pagination" hidden>
+          <div class="pagination-meta" id="notif-pagination-meta" aria-live="polite"></div>
+          <nav class="pagination-controls" aria-label="Навігація оповіщеннями">
+            <button class="btn btn-secondary btn-sm" id="notif-prev" type="button">← Попередня</button>
+            <button class="btn btn-secondary btn-sm" id="notif-next" type="button">Наступна →</button>
+          </nav>
+        </footer>
+      </div>
     </div>
 
     <!-- ── Drawer overlay ──────────────────────────────────── -->
@@ -977,6 +1286,85 @@
         </button>
       </div>
       <div class="drawer-body" id="drawer-body"></div>
+    </aside>
+
+    <!-- ── Create notification modal ──────────────────────── -->
+    <div class="modal-overlay" id="create-notif-overlay">
+      <div class="modal" role="dialog" aria-modal="true" aria-labelledby="create-notif-title">
+        <div class="modal-header">
+          <h2 class="modal-title" id="create-notif-title">Нове оповіщення</h2>
+          <button class="drawer-close" id="create-notif-close" type="button" aria-label="Закрити">×</button>
+        </div>
+        <div class="modal-body">
+          <div class="form-group">
+            <label class="form-label" for="notif-title">Заголовок</label>
+            <input class="form-input" id="notif-title" type="text" maxlength="200" placeholder="Нагадування BTW" />
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="notif-message">Текст повідомлення</label>
+            <textarea class="form-textarea" id="notif-message" maxlength="4000" placeholder="Текст, який отримають учасники"></textarea>
+          </div>
+          <div class="form-group">
+            <span class="form-label">Кому</span>
+            <div class="form-radio-group">
+              <label class="form-radio"><input type="radio" name="notif-target" value="all" checked /> Усім</label>
+              <label class="form-radio"><input type="radio" name="notif-target" value="training" /> Тренінг</label>
+              <label class="form-radio"><input type="radio" name="notif-target" value="user" /> Користувачу</label>
+            </div>
+          </div>
+          <div class="form-group" id="training-select-group" hidden>
+            <label class="form-label" for="notif-training">Тренінг</label>
+            <select class="form-select" id="notif-training"><option value="">Оберіть тренінг</option></select>
+          </div>
+          <div class="form-group" id="user-id-group" hidden>
+            <label class="form-label" for="notif-user-ids">Telegram ID користувача</label>
+            <input class="form-input" id="notif-user-ids" type="text" placeholder="123456789" />
+          </div>
+          <div class="form-group">
+            <span class="form-label">Коли</span>
+            <div class="form-radio-group">
+              <label class="form-radio"><input type="radio" name="notif-when" value="now" checked /> Зараз</label>
+              <label class="form-radio"><input type="radio" name="notif-when" value="scheduled" /> Запланувати</label>
+            </div>
+          </div>
+          <div class="form-row" id="schedule-row" hidden>
+            <div class="form-group">
+              <label class="form-label" for="notif-date">Дата</label>
+              <input class="form-input" id="notif-date" type="date" />
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="notif-time">Час</label>
+              <input class="form-input" id="notif-time" type="time" />
+            </div>
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="notif-expires">Термін актуальності (необов'язково)</label>
+            <input class="form-input" id="notif-expires" type="datetime-local" />
+          </div>
+          <div class="form-error" id="notif-error" hidden></div>
+        </div>
+        <div class="modal-footer">
+          <span class="preview-count" id="notif-preview-count"></span>
+          <button class="btn btn-primary" id="notif-submit" type="button">Надіслати</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── Notification detail drawer ─────────────────────── -->
+    <div class="drawer-overlay" id="notif-drawer-overlay" aria-hidden="true"></div>
+    <aside
+      class="drawer"
+      id="notif-drawer"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="notif-drawer-title"
+      aria-hidden="true"
+    >
+      <div class="drawer-header">
+        <h2 class="drawer-title" id="notif-drawer-title">Деталі оповіщення</h2>
+        <button class="drawer-close" id="notif-drawer-close" type="button" aria-label="Закрити">×</button>
+      </div>
+      <div class="drawer-body" id="notif-drawer-body"></div>
     </aside>
 
     <!-- visually-hidden utility -->

@@ -9,6 +9,7 @@ import { createUsersRepository, type UserRepository } from "../repositories/user
 import { registerCallbackHandlers } from "./handlers/callbacks.js";
 import { registerCommandHandlers } from "./handlers/commands.js";
 import { registerRegistrationHandlers } from "./handlers/registration.js";
+import { getRulesChunks } from "../services/rules.service.js";
 import type { BotContext } from "./types.js";
 
 export interface BotDependencies {
@@ -21,6 +22,7 @@ export interface BotDependencies {
     | "privacyPolicyVersion"
     | "eventRulesVersion"
   >;
+  getRulesChunks: () => Promise<string[]>;
 }
 
 export function createBot(settings: Settings, pool: Pool): Bot<BotContext> {
@@ -28,6 +30,7 @@ export function createBot(settings: Settings, pool: Pool): Bot<BotContext> {
   const dependencies: BotDependencies = {
     users: createUsersRepository(pool),
     settings,
+    getRulesChunks,
   };
 
   bot.use(

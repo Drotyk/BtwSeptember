@@ -6,6 +6,10 @@ import { deleteExpiredSessions } from "./repositories/sessions.repository.js";
 import { createPool } from "./db.js";
 import { migrationsAreApplied, runMigrations } from "./migrations.js";
 import { startWebServer, stopWebServer } from "./web.js";
+import {
+  createNotificationWorker,
+  type NotificationWorker,
+} from "./workers/notification.worker.js";
 
 async function main(): Promise<void> {
   const settings = getSettings();
@@ -15,6 +19,7 @@ async function main(): Promise<void> {
   let botReady = false;
   let migrationsReady = false;
   let shuttingDown = false;
+  let notificationWorker: NotificationWorker | undefined;
   const bot = createBot(settings, pool);
   const cleanupInterval = setInterval(
     () => {
@@ -30,6 +35,11 @@ async function main(): Promise<void> {
     botReady = false;
     console.info(`Отримано ${signal}, зупиняю BTW...`);
     clearInterval(cleanupInterval);
+    try {
+      if (notificationWorker) await notificationWorker.stop();
+    } catch {
+      // Worker shutdown must not block the rest.
+    }
     try {
       if (botStarted) await bot.stop();
     } catch {
@@ -65,6 +75,14 @@ async function main(): Promise<void> {
     await bot.api.deleteWebhook({ drop_pending_updates: settings.dropPendingUpdates });
     botReady = true;
     botStarted = true;
+
+    notificationWorker = createNotificationWorker(pool, {
+      sendMessage: async (chatId, text) => {
+        await bot.api.sendMessage(chatId, text);
+      },
+    });
+    notificationWorker.start();
+
     await bot.start({
       onStart: (botInfo) => {
         console.info(`BTW bot @${botInfo.username} готовий`);

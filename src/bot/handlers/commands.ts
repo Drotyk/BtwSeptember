@@ -78,4 +78,16 @@ export function registerCommandHandlers(bot: Bot<BotContext>, dependencies: BotD
       { reply_markup: deleteConfirmationKeyboard() },
     );
   });
+
+  bot.command("rules", async (ctx) => {
+    if (ctx.chat?.type !== "private") return;
+    try {
+      const chunks = await dependencies.getRulesChunks();
+      for (const chunk of chunks) {
+        await ctx.reply(chunk);
+      }
+    } catch {
+      await ctx.reply("Не вдалося завантажити правила. Спробуйте пізніше.");
+    }
+  });
 }

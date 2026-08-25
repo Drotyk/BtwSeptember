@@ -464,6 +464,13 @@ export function init() {
     abortController: null,
     /** @type {HTMLElement | null} — кнопка, що відкрила drawer */
     openerButton: null,
+    activeTab: "users",
+    notifPage: 1,
+    notifPageSize: 20,
+    /** @type {AbortController | null} */
+    notifAbortController: null,
+    /** @type {HTMLElement | null} */
+    notifOpenerButton: null,
   };
 
   // ── DOM refs ──────────────────────────────────────────────────────────
@@ -777,6 +784,569 @@ export function init() {
   // ── Initial load ──────────────────────────────────────────────────────
 
   void loadUsers();
+
+  // ── Tab switching ──────────────────────────────────────────────────────
+
+  const tabUsers = document.getElementById("tab-users");
+  const tabNotifications = document.getElementById("tab-notifications");
+  const usersPanel = document.getElementById("users-panel");
+  const notifPanel = document.getElementById("notif-panel");
+
+  function switchTab(tab) {
+    state.activeTab = tab;
+    if (tab === "users") {
+      tabUsers.classList.add("is-active");
+      tabNotifications.classList.remove("is-active");
+      if (usersPanel) usersPanel.style.display = "";
+      if (notifPanel) notifPanel.classList.remove("is-visible");
+    } else {
+      tabUsers.classList.remove("is-active");
+      tabNotifications.classList.add("is-active");
+      if (usersPanel) usersPanel.style.display = "none";
+      if (notifPanel) notifPanel.classList.add("is-visible");
+      void loadNotifications();
+    }
+  }
+
+  if (tabUsers) tabUsers.addEventListener("click", () => switchTab("users"));
+  if (tabNotifications) tabNotifications.addEventListener("click", () => switchTab("notifications"));
+
+  // ── Notifications ─────────────────────────────────────────────────────
+
+  const notifSkeleton = document.getElementById("notif-skeleton");
+  const notifTableScroll = document.getElementById("notif-table-scroll");
+  const notifBody = document.getElementById("notif-body");
+  const notifEmpty = document.getElementById("notif-empty");
+  const notifPagination = document.getElementById("notif-pagination");
+  const notifPaginationMeta = document.getElementById("notif-pagination-meta");
+  const notifPrevBtn = document.getElementById("notif-prev");
+  const notifNextBtn = document.getElementById("notif-next");
+  const createNotifBtn = document.getElementById("create-notif-btn");
+
+  // Notification detail drawer
+  const notifDrawer = document.getElementById("notif-drawer");
+  const notifDrawerOverlay = document.getElementById("notif-drawer-overlay");
+  const notifDrawerTitle = document.getElementById("notif-drawer-title");
+  const notifDrawerBody = document.getElementById("notif-drawer-body");
+  const notifDrawerClose = document.getElementById("notif-drawer-close");
+
+  function openNotifDrawer(notification, openerBtn) {
+    state.notifOpenerButton = openerBtn ?? null;
+    if (notifDrawerTitle) notifDrawerTitle.textContent = notification.title ?? "Оповіщення";
+    if (notifDrawerBody) notifDrawerBody.replaceChildren(createNotifDrawerContent(notification));
+    if (notifDrawer) notifDrawer.setAttribute("aria-hidden", "false");
+    if (notifDrawerOverlay) {
+      notifDrawerOverlay.classList.add("is-visible");
+      notifDrawerOverlay.setAttribute("aria-hidden", "false");
+    }
+    document.body.classList.add("drawer-open");
+    if (notifDrawerClose) notifDrawerClose.focus();
+    document.addEventListener("keydown", handleNotifDrawerKeydown);
+  }
+
+  function closeNotifDrawer() {
+    if (notifDrawer) notifDrawer.setAttribute("aria-hidden", "true");
+    if (notifDrawerOverlay) {
+      notifDrawerOverlay.classList.remove("is-visible");
+      notifDrawerOverlay.setAttribute("aria-hidden", "true");
+    }
+    document.body.classList.remove("drawer-open");
+    document.removeEventListener("keydown", handleNotifDrawerKeydown);
+    if (state.notifOpenerButton) {
+      state.notifOpenerButton.focus();
+      state.notifOpenerButton = null;
+    }
+  }
+
+  function handleNotifDrawerKeydown(event) {
+    if (event.key === "Escape") {
+      event.preventDefault();
+      closeNotifDrawer();
+    }
+  }
+
+  if (notifDrawerClose) notifDrawerClose.addEventListener("click", closeNotifDrawer);
+  if (notifDrawerOverlay) notifDrawerOverlay.addEventListener("click", closeNotifDrawer);
+
+  const STATUS_LABELS = {
+    pending: "Очікує",
+    processing: "Обробка",
+    sent: "Надіслано",
+    partially_sent: "Частково",
+    failed: "Помилка",
+    expired: "Протерміновано",
+    cancelled: "Скасовано",
+  };
+
+  const TARGET_LABELS = {
+    all: "Усім",
+    training: "Тренінг",
+    user: "Користувачу",
+    custom: "Вибірково",
+  };
+
+  function createStatusBadge(status) {
+    const badge = document.createElement("span");
+    badge.className = `status-badge status-badge--${status}`;
+    badge.textContent = STATUS_LABELS[status] ?? status;
+    return badge;
+  }
+
+  function createNotifRow(notif, onOpen) {
+    const tr = document.createElement("tr");
+
+    const tdTitle = document.createElement("td");
+    const titleEl = document.createElement("div");
+    titleEl.className = "cell-primary";
+    titleEl.textContent = notif.title ?? "—";
+    const msgEl = document.createElement("div");
+    msgEl.className = "cell-secondary";
+    const msgText = notif.message ?? "";
+    msgEl.textContent = msgText.length > 60 ? msgText.slice(0, 60) + "…" : msgText;
+    tdTitle.append(titleEl, msgEl);
+    tr.append(tdTitle);
+
+    const tdAudience = document.createElement("td");
+    tdAudience.textContent = TARGET_LABELS[notif.targetType] ?? notif.targetType;
+    tr.append(tdAudience);
+
+    const tdScheduled = document.createElement("td");
+    tdScheduled.textContent = formatDate(notif.scheduledAt);
+    tr.append(tdScheduled);
+
+    const tdStatus = document.createElement("td");
+    tdStatus.append(createStatusBadge(notif.status));
+    tr.append(tdStatus);
+
+    const tdStats = document.createElement("td");
+    const pills = document.createElement("div");
+    pills.className = "stat-pills";
+    if (notif.sentCount > 0) {
+      const p = document.createElement("span");
+      p.className = "stat-pill";
+      p.textContent = `✓ ${notif.sentCount}`;
+      pills.append(p);
+    }
+    if (notif.failedCount > 0) {
+      const p = document.createElement("span");
+      p.className = "stat-pill";
+      p.textContent = `✗ ${notif.failedCount}`;
+      pills.append(p);
+    }
+    if (notif.blockedCount > 0) {
+      const p = document.createElement("span");
+      p.className = "stat-pill";
+      p.textContent = `⊘ ${notif.blockedCount}`;
+      pills.append(p);
+    }
+    if (notif.pendingCount > 0) {
+      const p = document.createElement("span");
+      p.className = "stat-pill";
+      p.textContent = `… ${notif.pendingCount}`;
+      pills.append(p);
+    }
+    tdStats.append(pills);
+    tr.append(tdStats);
+
+    const tdActions = document.createElement("td");
+    const openBtn = document.createElement("button");
+    openBtn.className = "btn btn-open";
+    openBtn.type = "button";
+    openBtn.textContent = "Деталі";
+    openBtn.addEventListener("click", () => onOpen(notif, openBtn));
+    tdActions.append(openBtn);
+    tr.append(tdActions);
+
+    return tr;
+  }
+
+  function createNotifDrawerContent(notif) {
+    const frag = document.createDocumentFragment();
+
+    frag.append(
+      createDetailSection("Основне", [
+        ["Заголовок", notif.title],
+        ["Статус", STATUS_LABELS[notif.status] ?? notif.status],
+        ["Аудиторія", TARGET_LABELS[notif.targetType] ?? notif.targetType],
+        ["Заплановано", formatDate(notif.scheduledAt)],
+        ["Надіслано", formatDate(notif.sentAt)],
+        ["Термін", notif.expiresAt ? formatDate(notif.expiresAt) : "—"],
+      ]),
+    );
+
+    // Message
+    const msgSection = document.createElement("div");
+    msgSection.className = "detail-section";
+    const msgTitle = document.createElement("h3");
+    msgTitle.className = "detail-section__title";
+    msgTitle.textContent = "Текст повідомлення";
+    msgSection.append(msgTitle);
+    const msgPre = document.createElement("p");
+    msgPre.style.whiteSpace = "pre-wrap";
+    msgPre.style.fontSize = "13px";
+    msgPre.style.color = "var(--text-primary)";
+    msgPre.textContent = notif.message ?? "";
+    msgSection.append(msgPre);
+    frag.append(msgSection);
+
+    // Action buttons
+    if (notif.status === "pending" || notif.status === "processing") {
+      const actions = document.createElement("div");
+      actions.style.display = "flex";
+      actions.style.gap = "8px";
+      actions.style.marginBottom = "20px";
+      const cancelBtn = document.createElement("button");
+      cancelBtn.className = "btn btn-secondary btn-sm";
+      cancelBtn.textContent = "Скасувати";
+      cancelBtn.addEventListener("click", async () => {
+        await fetch(`/api/notifications/${notif.id}/cancel`, {
+          method: "POST",
+          credentials: "same-origin",
+        });
+        closeNotifDrawer();
+        void loadNotifications();
+      });
+      actions.append(cancelBtn);
+      frag.append(actions);
+    }
+
+    if (notif.status === "partially_sent" || notif.status === "failed") {
+      const actions = document.createElement("div");
+      actions.style.display = "flex";
+      actions.style.gap = "8px";
+      actions.style.marginBottom = "20px";
+      const retryBtn = document.createElement("button");
+      retryBtn.className = "btn btn-secondary btn-sm";
+      retryBtn.textContent = "Повторити невдалі";
+      retryBtn.addEventListener("click", async () => {
+        await fetch(`/api/notifications/${notif.id}/retry-failed`, {
+          method: "POST",
+          credentials: "same-origin",
+        });
+        closeNotifDrawer();
+        void loadNotifications();
+      });
+      actions.append(retryBtn);
+      frag.append(actions);
+    }
+
+    // Deliveries table
+    if (Array.isArray(notif.deliveries) && notif.deliveries.length > 0) {
+      const delSection = document.createElement("div");
+      delSection.className = "detail-section";
+      const delTitle = document.createElement("h3");
+      delTitle.className = "detail-section__title";
+      delTitle.textContent = `Доставка (${notif.deliveries.length})`;
+      delSection.append(delTitle);
+
+      const delRows = document.createElement("div");
+      delRows.className = "detail-rows";
+      for (const delivery of notif.deliveries) {
+        const row = document.createElement("div");
+        row.className = "detail-row";
+        const nameEl = document.createElement("span");
+        nameEl.className = "detail-label";
+        nameEl.textContent = delivery.userName ?? `User #${delivery.userId}`;
+        const valEl = document.createElement("span");
+        valEl.className = "detail-value";
+        valEl.append(createStatusBadge(delivery.status));
+        if (delivery.lastError) {
+          const errEl = document.createElement("span");
+          errEl.style.fontSize = "11px";
+          errEl.style.color = "var(--text-secondary)";
+          errEl.style.marginLeft = "8px";
+          errEl.textContent = delivery.lastError;
+          valEl.append(errEl);
+        }
+        row.append(nameEl, valEl);
+        delRows.append(row);
+      }
+      delSection.append(delRows);
+      frag.append(delSection);
+    }
+
+    return frag;
+  }
+
+  async function loadNotifDetail(id, openerBtn) {
+    try {
+      const response = await fetch(`/api/notifications/${id}`, { credentials: "same-origin" });
+      if (response.status === 401) {
+        window.location.assign("/login");
+        return;
+      }
+      if (!response.ok) return;
+      const data = await response.json();
+      openNotifDrawer(data.notification, openerBtn);
+    } catch {
+      // silently fail
+    }
+  }
+
+  function renderNotifications(notifications, pagination) {
+    if (notifSkeleton) notifSkeleton.hidden = true;
+
+    if (notifications.length === 0) {
+      if (notifTableScroll) notifTableScroll.hidden = true;
+      if (notifPagination) notifPagination.hidden = true;
+      if (notifEmpty) notifEmpty.hidden = false;
+      return;
+    }
+
+    if (notifEmpty) notifEmpty.hidden = true;
+    if (notifTableScroll) notifTableScroll.hidden = false;
+
+    if (notifBody) {
+      notifBody.replaceChildren();
+      for (const notif of notifications) {
+        notifBody.append(
+          createNotifRow(notif, (n, btn) => void loadNotifDetail(n.id, btn)),
+        );
+      }
+    }
+
+    if (pagination && pagination.total > 0) {
+      const from = (pagination.page - 1) * pagination.pageSize + 1;
+      const to = Math.min(pagination.page * pagination.pageSize, pagination.total);
+      if (notifPaginationMeta) notifPaginationMeta.textContent = `Показано ${from}–${to} із ${pagination.total}`;
+      if (notifPrevBtn) notifPrevBtn.disabled = pagination.page <= 1;
+      if (notifNextBtn) notifNextBtn.disabled = pagination.page >= pagination.totalPages;
+      if (notifPagination) notifPagination.hidden = false;
+    } else {
+      if (notifPagination) notifPagination.hidden = true;
+    }
+  }
+
+  async function loadNotifications() {
+    if (state.notifAbortController) state.notifAbortController.abort();
+    state.notifAbortController = new AbortController();
+
+    if (notifSkeleton) notifSkeleton.hidden = false;
+    if (notifTableScroll) notifTableScroll.hidden = true;
+    if (notifEmpty) notifEmpty.hidden = true;
+
+    const params = new URLSearchParams({
+      page: String(state.notifPage),
+      pageSize: String(state.notifPageSize),
+    });
+
+    try {
+      const response = await fetch(`/api/notifications?${params}`, {
+        credentials: "same-origin",
+        signal: state.notifAbortController.signal,
+      });
+      if (response.status === 401) {
+        window.location.assign("/login");
+        return;
+      }
+      if (!response.ok) throw new Error("request");
+      const result = await response.json();
+      renderNotifications(result.notifications, result.pagination);
+    } catch (error) {
+      if (error instanceof Error && error.name === "AbortError") return;
+      if (notifSkeleton) notifSkeleton.hidden = true;
+    }
+  }
+
+  if (notifPrevBtn) {
+    notifPrevBtn.addEventListener("click", () => {
+      if (state.notifPage > 1) {
+        state.notifPage -= 1;
+        void loadNotifications();
+      }
+    });
+  }
+  if (notifNextBtn) {
+    notifNextBtn.addEventListener("click", () => {
+      state.notifPage += 1;
+      void loadNotifications();
+    });
+  }
+
+  // ── Create notification modal ─────────────────────────────────────────
+
+  const createNotifOverlay = document.getElementById("create-notif-overlay");
+  const createNotifClose = document.getElementById("create-notif-close");
+  const notifTitleInput = document.getElementById("notif-title");
+  const notifMessageInput = document.getElementById("notif-message");
+  const trainingSelectGroup = document.getElementById("training-select-group");
+  const notifTrainingSelect = document.getElementById("notif-training");
+  const userIdGroup = document.getElementById("user-id-group");
+  const notifUserIdsInput = document.getElementById("notif-user-ids");
+  const scheduleRow = document.getElementById("schedule-row");
+  const notifDateInput = document.getElementById("notif-date");
+  const notifTimeInput = document.getElementById("notif-time");
+  const notifExpiresInput = document.getElementById("notif-expires");
+  const notifError = document.getElementById("notif-error");
+  const notifPreviewCount = document.getElementById("notif-preview-count");
+  const notifSubmitBtn = document.getElementById("notif-submit");
+
+  function openCreateModal() {
+    if (createNotifOverlay) createNotifOverlay.classList.add("is-visible");
+    // Load trainings for selector
+    void loadTrainings();
+  }
+
+  function closeCreateModal() {
+    if (createNotifOverlay) createNotifOverlay.classList.remove("is-visible");
+    // Reset form
+    if (notifTitleInput) notifTitleInput.value = "";
+    if (notifMessageInput) notifMessageInput.value = "";
+    if (notifExpiresInput) notifExpiresInput.value = "";
+    if (notifError) notifError.hidden = true;
+    if (notifPreviewCount) notifPreviewCount.textContent = "";
+  }
+
+  if (createNotifBtn) createNotifBtn.addEventListener("click", openCreateModal);
+  if (createNotifClose) createNotifClose.addEventListener("click", closeCreateModal);
+  if (createNotifOverlay) {
+    createNotifOverlay.addEventListener("click", (e) => {
+      if (e.target === createNotifOverlay) closeCreateModal();
+    });
+  }
+
+  // Target type radio
+  const targetRadios = document.querySelectorAll('input[name="notif-target"]');
+  for (const radio of targetRadios) {
+    radio.addEventListener("change", () => {
+      const value = radio.value;
+      if (trainingSelectGroup) trainingSelectGroup.hidden = value !== "training";
+      if (userIdGroup) userIdGroup.hidden = value !== "user" && value !== "custom";
+      void updatePreviewCount();
+    });
+  }
+
+  // When radio
+  const whenRadios = document.querySelectorAll('input[name="notif-when"]');
+  for (const radio of whenRadios) {
+    radio.addEventListener("change", () => {
+      if (scheduleRow) scheduleRow.hidden = radio.value !== "scheduled";
+    });
+  }
+
+  async function loadTrainings() {
+    try {
+      const response = await fetch("/api/trainings", { credentials: "same-origin" });
+      if (!response.ok) return;
+      const data = await response.json();
+      if (notifTrainingSelect) {
+        // Keep first option
+        while (notifTrainingSelect.options.length > 1) notifTrainingSelect.remove(1);
+        for (const t of data.trainings) {
+          const opt = document.createElement("option");
+          opt.value = t.id;
+          opt.textContent = t.label;
+          notifTrainingSelect.append(opt);
+        }
+      }
+    } catch {
+      // silently fail
+    }
+  }
+
+  async function updatePreviewCount() {
+    const targetType = document.querySelector('input[name="notif-target"]:checked')?.value ?? "all";
+    const trainingId = targetType === "training" ? notifTrainingSelect?.value : null;
+    const userIdsRaw = notifUserIdsInput?.value ?? "";
+    const targetUserIds =
+      targetType === "user" && userIdsRaw
+        ? userIdsRaw.split(",").map((s) => Number(s.trim())).filter((n) => !isNaN(n))
+        : null;
+
+    try {
+      const response = await fetch("/api/notifications/preview-count", {
+        method: "POST",
+        credentials: "same-origin",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ targetType, trainingId, targetUserIds }),
+      });
+      if (!response.ok) return;
+      const data = await response.json();
+      if (notifPreviewCount) notifPreviewCount.textContent = `Це повідомлення отримають ${data.count} учасників`;
+    } catch {
+      // silently fail
+    }
+  }
+
+  if (notifTrainingSelect) notifTrainingSelect.addEventListener("change", () => void updatePreviewCount());
+
+  if (notifSubmitBtn) {
+    notifSubmitBtn.addEventListener("click", async () => {
+      if (notifError) notifError.hidden = true;
+
+      const title = notifTitleInput?.value?.trim() ?? "";
+      const message = notifMessageInput?.value?.trim() ?? "";
+      const targetType = document.querySelector('input[name="notif-target"]:checked')?.value ?? "all";
+      const whenValue = document.querySelector('input[name="notif-when"]:checked')?.value ?? "now";
+
+      if (!title || !message) {
+        if (notifError) {
+          notifError.textContent = "Заголовок і текст обов'язкові";
+          notifError.hidden = false;
+        }
+        return;
+      }
+
+      let scheduledAt;
+      if (whenValue === "scheduled") {
+        const dateVal = notifDateInput?.value;
+        const timeVal = notifTimeInput?.value;
+        if (!dateVal || !timeVal) {
+          if (notifError) {
+            notifError.textContent = "Вкажіть дату та час";
+            notifError.hidden = false;
+          }
+          return;
+        }
+        scheduledAt = new Date(`${dateVal}T${timeVal}:00`).toISOString();
+      } else {
+        scheduledAt = new Date().toISOString();
+      }
+
+      const body = {
+        title,
+        message,
+        targetType,
+        scheduledAt,
+      };
+
+      if (targetType === "training") body.trainingId = notifTrainingSelect?.value;
+      if (targetType === "user") {
+        const raw = notifUserIdsInput?.value ?? "";
+        body.targetUserIds = raw.split(",").map((s) => Number(s.trim())).filter((n) => !isNaN(n));
+      }
+
+      const expiresVal = notifExpiresInput?.value;
+      if (expiresVal) body.expiresAt = new Date(expiresVal).toISOString();
+
+      notifSubmitBtn.disabled = true;
+      try {
+        const response = await fetch("/api/notifications", {
+          method: "POST",
+          credentials: "same-origin",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(body),
+        });
+        const data = await response.json();
+        if (!response.ok) {
+          if (notifError) {
+            notifError.textContent = data.error ?? "Помилка створення";
+            notifError.hidden = false;
+          }
+          return;
+        }
+        closeCreateModal();
+        void loadNotifications();
+      } catch {
+        if (notifError) {
+          notifError.textContent = "Не вдалося створити оповіщення";
+          notifError.hidden = false;
+        }
+      } finally {
+        notifSubmitBtn.disabled = false;
+      }
+    });
+  }
 }
 
 // Запускаємо тільки в браузері і лише якщо в DOM є кореневий елемент сторінки.

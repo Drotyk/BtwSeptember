@@ -7,6 +7,8 @@ import { createAdminAuth, type AdminAuth } from "./web/auth.js";
 import type { Settings } from "./config.js";
 import { TRAININGS, getTrainingLabel } from "./form.js";
 import { createUsersRepository } from "./repositories/users.repository.js";
+import { createNotificationsRepository } from "./repositories/notifications.repository.js";
+import { validateNotificationInput } from "./services/notification.service.js";
 
 const INDEX_FILE = resolve(process.cwd(), "public/index.html");
 const LOGIN_FILE = resolve(process.cwd(), "public/login.html");
@@ -157,6 +159,164 @@ async function handleRequest(
     await sendFile(response, INDEX_FILE, "text/html; charset=utf-8");
     return;
   }
+
+  // ── Notification API ───────────────────────────────────────────────────
+
+  if (url.pathname === "/api/trainings" && request.method === "GET") {
+    if (!(await auth.isAuthenticated(request))) {
+      sendJson(response, 401, { error: "Необхідна авторизація" });
+      return;
+    }
+    const trainings = TRAININGS.filter((t) => t.active).map((t) => ({
+      id: t.id,
+      title: t.title,
+      date: t.date,
+      time: t.time,
+      speaker: t.speaker,
+      label: getTrainingLabel(t),
+    }));
+    sendJson(response, 200, { trainings });
+    return;
+  }
+
+  if (url.pathname === "/api/notifications/preview-count" && request.method === "POST") {
+    if (!(await auth.isAuthenticated(request))) {
+      sendJson(response, 401, { error: "Необхідна авторизація" });
+      return;
+    }
+    let body: unknown;
+    try {
+      body = JSON.parse(await readBody(request));
+    } catch {
+      sendJson(response, 400, { error: "Невірний формат запиту" });
+      return;
+    }
+    const record = typeof body === "object" && body !== null ? (body as Record<string, unknown>) : {};
+    const targetType = typeof record.targetType === "string" ? record.targetType : "all";
+    const trainingId = typeof record.trainingId === "string" ? record.trainingId : null;
+    const targetUserIds = Array.isArray(record.targetUserIds)
+      ? (record.targetUserIds as number[])
+      : null;
+    const repo = createNotificationsRepository(pool);
+    const count = await repo.countRecipients(targetType, trainingId, targetUserIds);
+    sendJson(response, 200, { count });
+    return;
+  }
+
+  if (url.pathname === "/api/notifications" && request.method === "POST") {
+    if (!(await auth.isAuthenticated(request))) {
+      sendJson(response, 401, { error: "Необхідна авторизація" });
+      return;
+    }
+    let body: unknown;
+    try {
+      body = JSON.parse(await readBody(request));
+    } catch {
+      sendJson(response, 400, { error: "Невірний формат запиту" });
+      return;
+    }
+    const record = typeof body === "object" && body !== null ? (body as Record<string, unknown>) : {};
+    const title = typeof record.title === "string" ? record.title.trim() : "";
+    const message = typeof record.message === "string" ? record.message.trim() : "";
+    const targetType = typeof record.targetType === "string" ? record.targetType : "";
+    const trainingId = typeof record.trainingId === "string" ? record.trainingId : undefined;
+    const targetUserIds = Array.isArray(record.targetUserIds)
+      ? (record.targetUserIds as number[])
+      : undefined;
+    const scheduledAt = typeof record.scheduledAt === "string" ? new Date(record.scheduledAt) : new Date();
+    const expiresAt = typeof record.expiresAt === "string" ? new Date(record.expiresAt) : undefined;
+
+    const validationError = validateNotificationInput({
+      title,
+      message,
+      targetType: targetType as "all" | "training" | "user" | "custom",
+      trainingId,
+      targetUserIds,
+      scheduledAt,
+      expiresAt,
+    });
+    if (validationError) {
+      sendJson(response, 400, { error: validationError });
+      return;
+    }
+
+    const repo = createNotificationsRepository(pool);
+    const notification = await repo.create({
+      title,
+      message,
+      trainingId: trainingId ?? null,
+      targetType,
+      targetUserIds: targetUserIds ?? null,
+      scheduledAt,
+      expiresAt: expiresAt ?? null,
+    });
+    sendJson(response, 201, { notification });
+    return;
+  }
+
+  if (url.pathname === "/api/notifications" && request.method === "GET") {
+    if (!(await auth.isAuthenticated(request))) {
+      sendJson(response, 401, { error: "Необхідна авторизація" });
+      return;
+    }
+    const page = getPaginationValue(url.searchParams.get("page"), 1);
+    const pageSize = Math.min(getPaginationValue(url.searchParams.get("pageSize"), 20), 100);
+    const repo = createNotificationsRepository(pool);
+    const result = await repo.list(page, pageSize);
+    sendJson(response, 200, {
+      notifications: result.notifications,
+      pagination: {
+        page,
+        pageSize,
+        total: result.total,
+        totalPages: Math.max(1, Math.ceil(result.total / pageSize)),
+      },
+    });
+    return;
+  }
+
+  // Notification detail / actions: /api/notifications/:id[/action]
+  const notificationMatch = /^\/api\/notifications\/([0-9]+)(\/[a-z-]+)?$/.exec(url.pathname);
+  if (notificationMatch && notificationMatch[1]) {
+    if (!(await auth.isAuthenticated(request))) {
+      sendJson(response, 401, { error: "Необхідна авторизація" });
+      return;
+    }
+    const notificationId = Number(notificationMatch[1]);
+    const action = notificationMatch[2] ?? "";
+    const repo = createNotificationsRepository(pool);
+
+    if (action === "" && request.method === "GET") {
+      const detail = await repo.findById(notificationId);
+      if (!detail) {
+        sendJson(response, 404, { error: "Оповіщення не знайдено" });
+        return;
+      }
+      sendJson(response, 200, { notification: detail });
+      return;
+    }
+
+    if (action === "/cancel" && request.method === "POST") {
+      const cancelled = await repo.cancel(notificationId);
+      if (!cancelled) {
+        sendJson(response, 400, { error: "Неможливо скасувати це оповіщення" });
+        return;
+      }
+      sendJson(response, 200, { ok: true });
+      return;
+    }
+
+    if (action === "/retry-failed" && request.method === "POST") {
+      const retried = await repo.retryFailed(notificationId);
+      sendJson(response, 200, { ok: true, retried });
+      return;
+    }
+
+    sendJson(response, 404, { error: "Сторінку не знайдено" });
+    return;
+  }
+
+  // ── Users API ──────────────────────────────────────────────────────────
 
   if (url.pathname !== "/api/users" || request.method !== "GET") {
     sendJson(response, 404, { error: "Сторінку не знайдено" });

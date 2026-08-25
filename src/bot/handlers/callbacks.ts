@@ -68,6 +68,19 @@ export function registerCallbackHandlers(
       return;
     }
 
+    if (data === "rules:show") {
+      await ctx.answerCallbackQuery();
+      try {
+        const chunks = await dependencies.getRulesChunks();
+        for (const chunk of chunks) {
+          await ctx.reply(chunk);
+        }
+      } catch {
+        await ctx.reply("Не вдалося завантажити правила. Спробуйте пізніше.");
+      }
+      return;
+    }
+
     if (!hasStep(ctx.session.registration, "trainings")) {
       await ctx.answerCallbackQuery({ text: "Ця анкета вже завершена або скасована." });
       return;

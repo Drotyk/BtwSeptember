@@ -93,6 +93,7 @@ export function trainingKeyboard(selected: string[] = []): InlineKeyboard {
 export function registrationActionsKeyboard(chatInviteLink: string): InlineKeyboard {
   const keyboard = new InlineKeyboard();
   if (chatInviteLink) keyboard.url("Приєднатися до чату", chatInviteLink).row();
+  keyboard.text("📜 Правила BTW", "rules:show").row();
   keyboard.text("Редагувати анкету", "registration:edit");
   return keyboard;
 }
