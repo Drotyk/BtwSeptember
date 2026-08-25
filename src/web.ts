@@ -191,7 +191,8 @@ async function handleRequest(
       sendJson(response, 400, { error: "Невірний формат запиту" });
       return;
     }
-    const record = typeof body === "object" && body !== null ? (body as Record<string, unknown>) : {};
+    const record =
+      typeof body === "object" && body !== null ? (body as Record<string, unknown>) : {};
     const targetType = typeof record.targetType === "string" ? record.targetType : "all";
     const trainingId = typeof record.trainingId === "string" ? record.trainingId : null;
     const targetUserIds = Array.isArray(record.targetUserIds)
@@ -215,7 +216,8 @@ async function handleRequest(
       sendJson(response, 400, { error: "Невірний формат запиту" });
       return;
     }
-    const record = typeof body === "object" && body !== null ? (body as Record<string, unknown>) : {};
+    const record =
+      typeof body === "object" && body !== null ? (body as Record<string, unknown>) : {};
     const title = typeof record.title === "string" ? record.title.trim() : "";
     const message = typeof record.message === "string" ? record.message.trim() : "";
     const targetType = typeof record.targetType === "string" ? record.targetType : "";
@@ -223,7 +225,8 @@ async function handleRequest(
     const targetUserIds = Array.isArray(record.targetUserIds)
       ? (record.targetUserIds as number[])
       : undefined;
-    const scheduledAt = typeof record.scheduledAt === "string" ? new Date(record.scheduledAt) : new Date();
+    const scheduledAt =
+      typeof record.scheduledAt === "string" ? new Date(record.scheduledAt) : new Date();
     const expiresAt = typeof record.expiresAt === "string" ? new Date(record.expiresAt) : undefined;
 
     const validationError = validateNotificationInput({

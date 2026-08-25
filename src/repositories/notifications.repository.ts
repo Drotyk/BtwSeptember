@@ -58,7 +58,10 @@ export interface NotificationsRepository {
 
   findById(id: number): Promise<NotificationDetail | null>;
 
-  list(page: number, pageSize: number): Promise<{
+  list(
+    page: number,
+    pageSize: number,
+  ): Promise<{
     notifications: NotificationWithCounts[];
     total: number;
   }>;

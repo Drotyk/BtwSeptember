@@ -809,7 +809,8 @@ export function init() {
   }
 
   if (tabUsers) tabUsers.addEventListener("click", () => switchTab("users"));
-  if (tabNotifications) tabNotifications.addEventListener("click", () => switchTab("notifications"));
+  if (tabNotifications)
+    tabNotifications.addEventListener("click", () => switchTab("notifications"));
 
   // ── Notifications ─────────────────────────────────────────────────────
 
@@ -1099,16 +1100,15 @@ export function init() {
     if (notifBody) {
       notifBody.replaceChildren();
       for (const notif of notifications) {
-        notifBody.append(
-          createNotifRow(notif, (n, btn) => void loadNotifDetail(n.id, btn)),
-        );
+        notifBody.append(createNotifRow(notif, (n, btn) => void loadNotifDetail(n.id, btn)));
       }
     }
 
     if (pagination && pagination.total > 0) {
       const from = (pagination.page - 1) * pagination.pageSize + 1;
       const to = Math.min(pagination.page * pagination.pageSize, pagination.total);
-      if (notifPaginationMeta) notifPaginationMeta.textContent = `Показано ${from}–${to} із ${pagination.total}`;
+      if (notifPaginationMeta)
+        notifPaginationMeta.textContent = `Показано ${from}–${to} із ${pagination.total}`;
       if (notifPrevBtn) notifPrevBtn.disabled = pagination.page <= 1;
       if (notifNextBtn) notifNextBtn.disabled = pagination.page >= pagination.totalPages;
       if (notifPagination) notifPagination.hidden = false;
@@ -1250,7 +1250,10 @@ export function init() {
     const userIdsRaw = notifUserIdsInput?.value ?? "";
     const targetUserIds =
       targetType === "user" && userIdsRaw
-        ? userIdsRaw.split(",").map((s) => Number(s.trim())).filter((n) => !isNaN(n))
+        ? userIdsRaw
+            .split(",")
+            .map((s) => Number(s.trim()))
+            .filter((n) => !isNaN(n))
         : null;
 
     try {
@@ -1262,13 +1265,15 @@ export function init() {
       });
       if (!response.ok) return;
       const data = await response.json();
-      if (notifPreviewCount) notifPreviewCount.textContent = `Це повідомлення отримають ${data.count} учасників`;
+      if (notifPreviewCount)
+        notifPreviewCount.textContent = `Це повідомлення отримають ${data.count} учасників`;
     } catch {
       // silently fail
     }
   }
 
-  if (notifTrainingSelect) notifTrainingSelect.addEventListener("change", () => void updatePreviewCount());
+  if (notifTrainingSelect)
+    notifTrainingSelect.addEventListener("change", () => void updatePreviewCount());
 
   if (notifSubmitBtn) {
     notifSubmitBtn.addEventListener("click", async () => {
@@ -1276,7 +1281,8 @@ export function init() {
 
       const title = notifTitleInput?.value?.trim() ?? "";
       const message = notifMessageInput?.value?.trim() ?? "";
-      const targetType = document.querySelector('input[name="notif-target"]:checked')?.value ?? "all";
+      const targetType =
+        document.querySelector('input[name="notif-target"]:checked')?.value ?? "all";
       const whenValue = document.querySelector('input[name="notif-when"]:checked')?.value ?? "now";
 
       if (!title || !message) {
@@ -1313,7 +1319,10 @@ export function init() {
       if (targetType === "training") body.trainingId = notifTrainingSelect?.value;
       if (targetType === "user") {
         const raw = notifUserIdsInput?.value ?? "";
-        body.targetUserIds = raw.split(",").map((s) => Number(s.trim())).filter((n) => !isNaN(n));
+        body.targetUserIds = raw
+          .split(",")
+          .map((s) => Number(s.trim()))
+          .filter((n) => !isNaN(n));
       }
 
       const expiresVal = notifExpiresInput?.value;

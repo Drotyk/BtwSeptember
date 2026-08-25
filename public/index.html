@@ -840,8 +840,12 @@
       }
 
       /* ── Notification panel ──────────────────────────────────── */
-      .notif-panel { display: none; }
-      .notif-panel.is-visible { display: block; }
+      .notif-panel {
+        display: none;
+      }
+      .notif-panel.is-visible {
+        display: block;
+      }
 
       .notif-header {
         display: flex;
@@ -867,21 +871,61 @@
         letter-spacing: 0.04em;
       }
 
-      .status-badge--pending { background: var(--accent-subtle); color: var(--text-secondary); border: 1px solid var(--border); }
-      .status-badge--processing { background: var(--accent-subtle); color: var(--accent); border: 1px solid var(--border); }
-      .status-badge--sent { background: var(--success-subtle); color: var(--success); border: 1px solid var(--border); }
-      .status-badge--partially_sent { background: var(--warning-subtle); color: var(--warning); border: 1px solid var(--border); }
-      .status-badge--failed { background: var(--error-subtle); color: var(--error); border: 1px solid var(--border); }
-      .status-badge--expired { background: var(--surface-raised); color: var(--text-disabled); border: 1px solid var(--border-subtle); }
-      .status-badge--cancelled { background: var(--surface-raised); color: var(--text-disabled); border: 1px solid var(--border-subtle); }
+      .status-badge--pending {
+        background: var(--accent-subtle);
+        color: var(--text-secondary);
+        border: 1px solid var(--border);
+      }
+      .status-badge--processing {
+        background: var(--accent-subtle);
+        color: var(--accent);
+        border: 1px solid var(--border);
+      }
+      .status-badge--sent {
+        background: var(--success-subtle);
+        color: var(--success);
+        border: 1px solid var(--border);
+      }
+      .status-badge--partially_sent {
+        background: var(--warning-subtle);
+        color: var(--warning);
+        border: 1px solid var(--border);
+      }
+      .status-badge--failed {
+        background: var(--error-subtle);
+        color: var(--error);
+        border: 1px solid var(--border);
+      }
+      .status-badge--expired {
+        background: var(--surface-raised);
+        color: var(--text-disabled);
+        border: 1px solid var(--border-subtle);
+      }
+      .status-badge--cancelled {
+        background: var(--surface-raised);
+        color: var(--text-disabled);
+        border: 1px solid var(--border-subtle);
+      }
 
       /* Notification table column widths */
-      .col-notif-title { width: 250px; }
-      .col-notif-audience { width: 140px; }
-      .col-notif-scheduled { width: 140px; }
-      .col-notif-status { width: 120px; }
-      .col-notif-stats { width: 180px; }
-      .col-notif-actions { width: 100px; }
+      .col-notif-title {
+        width: 250px;
+      }
+      .col-notif-audience {
+        width: 140px;
+      }
+      .col-notif-scheduled {
+        width: 140px;
+      }
+      .col-notif-status {
+        width: 120px;
+      }
+      .col-notif-stats {
+        width: 180px;
+      }
+      .col-notif-actions {
+        width: 100px;
+      }
 
       /* Stat pills */
       .stat-pills {
@@ -972,7 +1016,9 @@
         letter-spacing: 0.06em;
       }
 
-      .form-input, .form-textarea, .form-select {
+      .form-input,
+      .form-textarea,
+      .form-select {
         width: 100%;
         min-height: 40px;
         padding: 8px 14px;
@@ -994,7 +1040,9 @@
         appearance: auto;
       }
 
-      .form-input:focus, .form-textarea:focus, .form-select:focus {
+      .form-input:focus,
+      .form-textarea:focus,
+      .form-select:focus {
         outline: none;
         border-color: var(--accent);
       }
@@ -1062,150 +1110,154 @@
       <div id="users-panel">
         <!-- ── Search ─────────────────────────────────────────── -->
         <section class="search-panel" aria-label="Пошук анкет">
-        <form class="search-form" id="search-form" role="search">
-          <div class="search-input-wrap">
-            <input
-              id="search"
-              class="search-input"
-              type="search"
-              placeholder="Пошук за ПІБ, телефоном, Telegram, закладом або тренінгом"
-              autocomplete="off"
-              aria-label="Пошуковий запит"
-            />
-            <button
-              class="search-clear"
-              id="search-clear"
-              type="button"
-              aria-label="Очистити пошук"
-              hidden
-            >
-              ×
+          <form class="search-form" id="search-form" role="search">
+            <div class="search-input-wrap">
+              <input
+                id="search"
+                class="search-input"
+                type="search"
+                placeholder="Пошук за ПІБ, телефоном, Telegram, закладом або тренінгом"
+                autocomplete="off"
+                aria-label="Пошуковий запит"
+              />
+              <button
+                class="search-clear"
+                id="search-clear"
+                type="button"
+                aria-label="Очистити пошук"
+                hidden
+              >
+                ×
+              </button>
+            </div>
+            <button class="btn btn-primary" type="submit" id="search-btn">Знайти</button>
+          </form>
+        </section>
+
+        <!-- ── Table (desktop) ────────────────────────────────── -->
+        <section class="table-section" aria-label="Список анкет" aria-live="polite">
+          <!-- Skeleton -->
+          <div id="skeleton" class="skeleton-wrap" aria-hidden="true">
+            <div class="skeleton-row">
+              <div class="skeleton-cell" style="width: 160px"></div>
+              <div class="skeleton-cell" style="width: 130px"></div>
+              <div class="skeleton-cell" style="width: 160px"></div>
+              <div class="skeleton-cell" style="width: 80px"></div>
+              <div class="skeleton-cell" style="width: 120px"></div>
+              <div class="skeleton-cell" style="width: 100px"></div>
+            </div>
+            <div class="skeleton-row">
+              <div class="skeleton-cell" style="width: 140px"></div>
+              <div class="skeleton-cell" style="width: 150px"></div>
+              <div class="skeleton-cell" style="width: 110px"></div>
+              <div class="skeleton-cell" style="width: 100px"></div>
+              <div class="skeleton-cell" style="width: 140px"></div>
+              <div class="skeleton-cell" style="width: 80px"></div>
+            </div>
+            <div class="skeleton-row">
+              <div class="skeleton-cell" style="width: 180px"></div>
+              <div class="skeleton-cell" style="width: 120px"></div>
+              <div class="skeleton-cell" style="width: 140px"></div>
+              <div class="skeleton-cell" style="width: 90px"></div>
+              <div class="skeleton-cell" style="width: 110px"></div>
+              <div class="skeleton-cell" style="width: 100px"></div>
+            </div>
+          </div>
+
+          <!-- Table -->
+          <div class="table-scroll" id="table-scroll" hidden>
+            <table aria-label="Таблиця анкет">
+              <colgroup>
+                <col class="col-participant" />
+                <col class="col-contacts" />
+                <col class="col-education" />
+                <col class="col-trainings" />
+                <col class="col-source" />
+                <col class="col-submitted" />
+                <col class="col-actions" />
+              </colgroup>
+              <thead>
+                <tr>
+                  <th scope="col">Учасник</th>
+                  <th scope="col">Контакти</th>
+                  <th scope="col">Навчання</th>
+                  <th scope="col">Тренінги</th>
+                  <th scope="col">Джерело</th>
+                  <th scope="col">Подано</th>
+                  <th scope="col"><span class="visually-hidden">Дії</span></th>
+                </tr>
+              </thead>
+              <tbody id="users-body"></tbody>
+            </table>
+          </div>
+
+          <!-- Empty state -->
+          <div class="state-block" id="empty-state" hidden role="status">
+            <div class="state-block__icon" aria-hidden="true">📋</div>
+            <div class="state-block__title" id="empty-title">Анкет поки немає</div>
+            <div class="state-block__desc" id="empty-desc">Збережені анкети з'являться тут</div>
+            <button class="btn btn-secondary" id="clear-search-btn" hidden>Очистити пошук</button>
+          </div>
+
+          <!-- Error state -->
+          <div class="state-block" id="error-state" hidden role="alert">
+            <div class="state-block__icon" aria-hidden="true">⚠️</div>
+            <div class="state-block__title">Не вдалося завантажити дані</div>
+            <div class="state-block__desc">Перевірте з'єднання або спробуйте ще раз</div>
+            <button class="btn btn-secondary" id="retry-btn">Спробувати ще раз</button>
+          </div>
+        </section>
+
+        <!-- ── Pagination (desktop) ───────────────────────────── -->
+        <footer class="pagination-bar" id="pagination-bar" hidden>
+          <div class="pagination-meta" id="pagination-meta" aria-live="polite"></div>
+          <nav class="pagination-controls" aria-label="Навігація сторінками">
+            <button class="btn btn-secondary btn-sm" id="previous" type="button">
+              ← Попередня
             </button>
-          </div>
-          <button class="btn btn-primary" type="submit" id="search-btn">Знайти</button>
-        </form>
-      </section>
+            <button class="btn btn-secondary btn-sm" id="next" type="button">Наступна →</button>
+          </nav>
+        </footer>
 
-      <!-- ── Table (desktop) ────────────────────────────────── -->
-      <section class="table-section" aria-label="Список анкет" aria-live="polite">
-        <!-- Skeleton -->
-        <div id="skeleton" class="skeleton-wrap" aria-hidden="true">
-          <div class="skeleton-row">
-            <div class="skeleton-cell" style="width: 160px"></div>
-            <div class="skeleton-cell" style="width: 130px"></div>
-            <div class="skeleton-cell" style="width: 160px"></div>
-            <div class="skeleton-cell" style="width: 80px"></div>
-            <div class="skeleton-cell" style="width: 120px"></div>
-            <div class="skeleton-cell" style="width: 100px"></div>
-          </div>
-          <div class="skeleton-row">
-            <div class="skeleton-cell" style="width: 140px"></div>
-            <div class="skeleton-cell" style="width: 150px"></div>
-            <div class="skeleton-cell" style="width: 110px"></div>
-            <div class="skeleton-cell" style="width: 100px"></div>
-            <div class="skeleton-cell" style="width: 140px"></div>
-            <div class="skeleton-cell" style="width: 80px"></div>
-          </div>
-          <div class="skeleton-row">
-            <div class="skeleton-cell" style="width: 180px"></div>
-            <div class="skeleton-cell" style="width: 120px"></div>
-            <div class="skeleton-cell" style="width: 140px"></div>
-            <div class="skeleton-cell" style="width: 90px"></div>
-            <div class="skeleton-cell" style="width: 110px"></div>
-            <div class="skeleton-cell" style="width: 100px"></div>
-          </div>
-        </div>
+        <!-- ── Mobile cards ───────────────────────────────────── -->
+        <section
+          class="cards-list"
+          id="cards-list"
+          aria-label="Список анкет"
+          aria-live="polite"
+        ></section>
 
-        <!-- Table -->
-        <div class="table-scroll" id="table-scroll" hidden>
-          <table aria-label="Таблиця анкет">
-            <colgroup>
-              <col class="col-participant" />
-              <col class="col-contacts" />
-              <col class="col-education" />
-              <col class="col-trainings" />
-              <col class="col-source" />
-              <col class="col-submitted" />
-              <col class="col-actions" />
-            </colgroup>
-            <thead>
-              <tr>
-                <th scope="col">Учасник</th>
-                <th scope="col">Контакти</th>
-                <th scope="col">Навчання</th>
-                <th scope="col">Тренінги</th>
-                <th scope="col">Джерело</th>
-                <th scope="col">Подано</th>
-                <th scope="col"><span class="visually-hidden">Дії</span></th>
-              </tr>
-            </thead>
-            <tbody id="users-body"></tbody>
-          </table>
-        </div>
-
-        <!-- Empty state -->
-        <div class="state-block" id="empty-state" hidden role="status">
-          <div class="state-block__icon" aria-hidden="true">📋</div>
-          <div class="state-block__title" id="empty-title">Анкет поки немає</div>
-          <div class="state-block__desc" id="empty-desc">Збережені анкети з'являться тут</div>
-          <button class="btn btn-secondary" id="clear-search-btn" hidden>Очистити пошук</button>
-        </div>
-
-        <!-- Error state -->
-        <div class="state-block" id="error-state" hidden role="alert">
-          <div class="state-block__icon" aria-hidden="true">⚠️</div>
-          <div class="state-block__title">Не вдалося завантажити дані</div>
-          <div class="state-block__desc">Перевірте з'єднання або спробуйте ще раз</div>
-          <button class="btn btn-secondary" id="retry-btn">Спробувати ще раз</button>
-        </div>
-      </section>
-
-      <!-- ── Pagination (desktop) ───────────────────────────── -->
-      <footer class="pagination-bar" id="pagination-bar" hidden>
-        <div class="pagination-meta" id="pagination-meta" aria-live="polite"></div>
-        <nav class="pagination-controls" aria-label="Навігація сторінками">
-          <button class="btn btn-secondary btn-sm" id="previous" type="button">← Попередня</button>
-          <button class="btn btn-secondary btn-sm" id="next" type="button">Наступна →</button>
-        </nav>
-      </footer>
-
-      <!-- ── Mobile cards ───────────────────────────────────── -->
-      <section
-        class="cards-list"
-        id="cards-list"
-        aria-label="Список анкет"
-        aria-live="polite"
-      ></section>
-
-      <!-- Mobile pagination -->
-      <footer
-        class="pagination-bar mobile-pagination"
-        id="mobile-pagination-bar"
-        style="
-          display: none;
-          border-top: 1px solid var(--border);
-          border-radius: var(--radius-lg);
-          margin-top: 12px;
-        "
-        hidden
-      >
-        <div class="pagination-meta" id="mobile-pagination-meta" aria-live="polite"></div>
-        <nav class="pagination-controls" aria-label="Навігація сторінками">
-          <button class="btn btn-secondary btn-sm" id="mobile-previous" type="button">
-            ← Попередня
-          </button>
-          <button class="btn btn-secondary btn-sm" id="mobile-next" type="button">
-            Наступна →
-          </button>
-        </nav>
-      </footer>
+        <!-- Mobile pagination -->
+        <footer
+          class="pagination-bar mobile-pagination"
+          id="mobile-pagination-bar"
+          style="
+            display: none;
+            border-top: 1px solid var(--border);
+            border-radius: var(--radius-lg);
+            margin-top: 12px;
+          "
+          hidden
+        >
+          <div class="pagination-meta" id="mobile-pagination-meta" aria-live="polite"></div>
+          <nav class="pagination-controls" aria-label="Навігація сторінками">
+            <button class="btn btn-secondary btn-sm" id="mobile-previous" type="button">
+              ← Попередня
+            </button>
+            <button class="btn btn-secondary btn-sm" id="mobile-next" type="button">
+              Наступна →
+            </button>
+          </nav>
+        </footer>
       </div>
 
       <!-- ── Notifications panel ────────────────────────────── -->
       <div class="notif-panel" id="notif-panel">
         <div class="notif-header">
           <span class="notif-header__title">Оповіщення</span>
-          <button class="btn btn-primary btn-sm" id="create-notif-btn" type="button">+ Створити</button>
+          <button class="btn btn-primary btn-sm" id="create-notif-btn" type="button">
+            + Створити
+          </button>
         </div>
 
         <section class="table-section" aria-label="Список оповіщень">
@@ -1260,8 +1312,12 @@
         <footer class="pagination-bar" id="notif-pagination" hidden>
           <div class="pagination-meta" id="notif-pagination-meta" aria-live="polite"></div>
           <nav class="pagination-controls" aria-label="Навігація оповіщеннями">
-            <button class="btn btn-secondary btn-sm" id="notif-prev" type="button">← Попередня</button>
-            <button class="btn btn-secondary btn-sm" id="notif-next" type="button">Наступна →</button>
+            <button class="btn btn-secondary btn-sm" id="notif-prev" type="button">
+              ← Попередня
+            </button>
+            <button class="btn btn-secondary btn-sm" id="notif-next" type="button">
+              Наступна →
+            </button>
           </nav>
         </footer>
       </div>
@@ -1293,28 +1349,49 @@
       <div class="modal" role="dialog" aria-modal="true" aria-labelledby="create-notif-title">
         <div class="modal-header">
           <h2 class="modal-title" id="create-notif-title">Нове оповіщення</h2>
-          <button class="drawer-close" id="create-notif-close" type="button" aria-label="Закрити">×</button>
+          <button class="drawer-close" id="create-notif-close" type="button" aria-label="Закрити">
+            ×
+          </button>
         </div>
         <div class="modal-body">
           <div class="form-group">
             <label class="form-label" for="notif-title">Заголовок</label>
-            <input class="form-input" id="notif-title" type="text" maxlength="200" placeholder="Нагадування BTW" />
+            <input
+              class="form-input"
+              id="notif-title"
+              type="text"
+              maxlength="200"
+              placeholder="Нагадування BTW"
+            />
           </div>
           <div class="form-group">
             <label class="form-label" for="notif-message">Текст повідомлення</label>
-            <textarea class="form-textarea" id="notif-message" maxlength="4000" placeholder="Текст, який отримають учасники"></textarea>
+            <textarea
+              class="form-textarea"
+              id="notif-message"
+              maxlength="4000"
+              placeholder="Текст, який отримають учасники"
+            ></textarea>
           </div>
           <div class="form-group">
             <span class="form-label">Кому</span>
             <div class="form-radio-group">
-              <label class="form-radio"><input type="radio" name="notif-target" value="all" checked /> Усім</label>
-              <label class="form-radio"><input type="radio" name="notif-target" value="training" /> Тренінг</label>
-              <label class="form-radio"><input type="radio" name="notif-target" value="user" /> Користувачу</label>
+              <label class="form-radio"
+                ><input type="radio" name="notif-target" value="all" checked /> Усім</label
+              >
+              <label class="form-radio"
+                ><input type="radio" name="notif-target" value="training" /> Тренінг</label
+              >
+              <label class="form-radio"
+                ><input type="radio" name="notif-target" value="user" /> Користувачу</label
+              >
             </div>
           </div>
           <div class="form-group" id="training-select-group" hidden>
             <label class="form-label" for="notif-training">Тренінг</label>
-            <select class="form-select" id="notif-training"><option value="">Оберіть тренінг</option></select>
+            <select class="form-select" id="notif-training">
+              <option value="">Оберіть тренінг</option>
+            </select>
           </div>
           <div class="form-group" id="user-id-group" hidden>
             <label class="form-label" for="notif-user-ids">Telegram ID користувача</label>
@@ -1323,8 +1400,12 @@
           <div class="form-group">
             <span class="form-label">Коли</span>
             <div class="form-radio-group">
-              <label class="form-radio"><input type="radio" name="notif-when" value="now" checked /> Зараз</label>
-              <label class="form-radio"><input type="radio" name="notif-when" value="scheduled" /> Запланувати</label>
+              <label class="form-radio"
+                ><input type="radio" name="notif-when" value="now" checked /> Зараз</label
+              >
+              <label class="form-radio"
+                ><input type="radio" name="notif-when" value="scheduled" /> Запланувати</label
+              >
             </div>
           </div>
           <div class="form-row" id="schedule-row" hidden>
@@ -1338,7 +1419,9 @@
             </div>
           </div>
           <div class="form-group">
-            <label class="form-label" for="notif-expires">Термін актуальності (необов'язково)</label>
+            <label class="form-label" for="notif-expires"
+              >Термін актуальності (необов'язково)</label
+            >
             <input class="form-input" id="notif-expires" type="datetime-local" />
           </div>
           <div class="form-error" id="notif-error" hidden></div>
@@ -1362,7 +1445,9 @@
     >
       <div class="drawer-header">
         <h2 class="drawer-title" id="notif-drawer-title">Деталі оповіщення</h2>
-        <button class="drawer-close" id="notif-drawer-close" type="button" aria-label="Закрити">×</button>
+        <button class="drawer-close" id="notif-drawer-close" type="button" aria-label="Закрити">
+          ×
+        </button>
       </div>
       <div class="drawer-body" id="notif-drawer-body"></div>
     </aside>

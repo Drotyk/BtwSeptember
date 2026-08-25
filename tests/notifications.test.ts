@@ -74,45 +74,65 @@ describe("notification.service", () => {
     });
 
     it("returns error for empty title", () => {
-      expect(validateNotificationInput({ ...validBaseInput, title: "   " })).toBe("Заголовок обов'язковий (до 200 символів)");
+      expect(validateNotificationInput({ ...validBaseInput, title: "   " })).toBe(
+        "Заголовок обов'язковий (до 200 символів)",
+      );
     });
 
     it("returns error for title > 200 chars", () => {
       const longTitle = "a".repeat(201);
-      expect(validateNotificationInput({ ...validBaseInput, title: longTitle })).toBe("Заголовок обов'язковий (до 200 символів)");
+      expect(validateNotificationInput({ ...validBaseInput, title: longTitle })).toBe(
+        "Заголовок обов'язковий (до 200 символів)",
+      );
     });
 
     it("returns error for empty message", () => {
-      expect(validateNotificationInput({ ...validBaseInput, message: "" })).toBe("Текст повідомлення обов'язковий (до 4000 символів)");
+      expect(validateNotificationInput({ ...validBaseInput, message: "" })).toBe(
+        "Текст повідомлення обов'язковий (до 4000 символів)",
+      );
     });
 
     it("returns error for message > 4000 chars", () => {
       const longMessage = "a".repeat(4001);
-      expect(validateNotificationInput({ ...validBaseInput, message: longMessage })).toBe("Текст повідомлення обов'язковий (до 4000 символів)");
+      expect(validateNotificationInput({ ...validBaseInput, message: longMessage })).toBe(
+        "Текст повідомлення обов'язковий (до 4000 символів)",
+      );
     });
 
     it("returns error for invalid targetType", () => {
-      expect(validateNotificationInput({ ...validBaseInput, targetType: "invalid" as unknown as "all" })).toBe("Невірний тип аудиторії");
+      expect(
+        validateNotificationInput({ ...validBaseInput, targetType: "invalid" as unknown as "all" }),
+      ).toBe("Невірний тип аудиторії");
     });
 
     it("returns error when training targetType without trainingId", () => {
-      expect(validateNotificationInput({ ...validBaseInput, targetType: "training" })).toBe("Тренінг обов'язковий для цього типу аудиторії");
+      expect(validateNotificationInput({ ...validBaseInput, targetType: "training" })).toBe(
+        "Тренінг обов'язковий для цього типу аудиторії",
+      );
     });
 
     it("returns error when user targetType without targetUserIds", () => {
-      expect(validateNotificationInput({ ...validBaseInput, targetType: "user" })).toBe("Потрібно вказати хоча б одного отримувача");
-      expect(validateNotificationInput({ ...validBaseInput, targetType: "user", targetUserIds: [] })).toBe("Потрібно вказати хоча б одного отримувача");
+      expect(validateNotificationInput({ ...validBaseInput, targetType: "user" })).toBe(
+        "Потрібно вказати хоча б одного отримувача",
+      );
+      expect(
+        validateNotificationInput({ ...validBaseInput, targetType: "user", targetUserIds: [] }),
+      ).toBe("Потрібно вказати хоча б одного отримувача");
     });
 
     it("returns error when scheduledAt is in the past", () => {
       const pastDate = new Date(Date.now() - 3600_000);
-      expect(validateNotificationInput({ ...validBaseInput, scheduledAt: pastDate })).toBe("Дата відправки не може бути в минулому");
+      expect(validateNotificationInput({ ...validBaseInput, scheduledAt: pastDate })).toBe(
+        "Дата відправки не може бути в минулому",
+      );
     });
 
     it("returns error when expiresAt <= scheduledAt", () => {
       const scheduledAt = new Date(Date.now() + 3600_000);
       const expiresAt = new Date(scheduledAt.getTime() - 1000);
-      expect(validateNotificationInput({ ...validBaseInput, scheduledAt, expiresAt })).toBe("Дата закінчення має бути після дати відправки");
+      expect(validateNotificationInput({ ...validBaseInput, scheduledAt, expiresAt })).toBe(
+        "Дата закінчення має бути після дати відправки",
+      );
     });
 
     it("returns null when expiresAt is not provided", () => {

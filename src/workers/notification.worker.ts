@@ -23,8 +23,7 @@ function isBotBlockedError(error: unknown): boolean {
   if (typeof error !== "object" || error === null) return false;
   const desc =
     "description" in error && typeof error.description === "string" ? error.description : "";
-  const code =
-    "error_code" in error && typeof error.error_code === "number" ? error.error_code : 0;
+  const code = "error_code" in error && typeof error.error_code === "number" ? error.error_code : 0;
   return (
     code === 403 ||
     desc.includes("bot was blocked") ||
@@ -47,10 +46,7 @@ export interface NotificationWorker {
   stop(): Promise<void>;
 }
 
-export function createNotificationWorker(
-  pool: Pool,
-  sender: TelegramSender,
-): NotificationWorker {
+export function createNotificationWorker(pool: Pool, sender: TelegramSender): NotificationWorker {
   const repo: NotificationsRepository = createNotificationsRepository(pool);
   let timer: ReturnType<typeof setInterval> | null = null;
   let running = false;
@@ -70,14 +66,10 @@ export function createNotificationWorker(
         await repo.markDeliveryResult(deliveryId, "blocked", safeErrorMessage(error));
         return;
       }
-      
+
       const errorMsg = safeErrorMessage(error);
       const isFailed = attempts + 1 >= MAX_DELIVERY_ATTEMPTS;
-      await repo.markDeliveryResult(
-        deliveryId,
-        isFailed ? "failed" : "pending",
-        errorMsg,
-      );
+      await repo.markDeliveryResult(deliveryId, isFailed ? "failed" : "pending", errorMsg);
     }
   }
 
