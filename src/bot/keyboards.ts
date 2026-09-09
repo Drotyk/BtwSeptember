@@ -41,19 +41,11 @@ export function institutionKeyboard(): Keyboard {
     .oneTime();
 }
 
-export function courseKeyboard(): Keyboard {
-  return new Keyboard()
-    .text("1")
-    .text("2")
-    .text("3")
-    .row()
-    .text("4")
-    .text("магістр")
-    .text(OTHER)
-    .row()
-    .text(BACK)
-    .resized()
-    .oneTime();
+export function courseKeyboard(hideMaster = false): Keyboard {
+  const keyboard = new Keyboard().text("1").text("2").text("3").row().text("4");
+  if (!hideMaster) keyboard.text("магістр");
+  keyboard.text(OTHER).row().text(BACK);
+  return keyboard.resized().oneTime();
 }
 
 export function sourceKeyboard(): Keyboard {

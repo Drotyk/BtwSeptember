@@ -88,9 +88,11 @@ export async function resumeRegistration(
     case "institutionOther":
       await ctx.reply("Напишіть назву навчального закладу.", { reply_markup: backKeyboard() });
       return;
-    case "course":
-      await ctx.reply("Який Ви курс?", { reply_markup: courseKeyboard() });
+    case "course": {
+      const hideMaster = ctx.session.registration?.institution === "ВТФК";
+      await ctx.reply("Який Ви курс?", { reply_markup: courseKeyboard(hideMaster) });
       return;
+    }
     case "courseOther":
       await ctx.reply("Напишіть Ваш курс.", { reply_markup: backKeyboard() });
       return;
@@ -155,14 +157,18 @@ export async function goBack(ctx: BotContext): Promise<void> {
         reply_markup: institutionKeyboard(),
       });
       return;
-    case "courseOther":
+    case "courseOther": {
       setStep(ctx, "course");
-      await ctx.reply("Який Ви курс?", { reply_markup: courseKeyboard() });
+      const hideMaster = ctx.session.registration?.institution === "ВТФК";
+      await ctx.reply("Який Ви курс?", { reply_markup: courseKeyboard(hideMaster) });
       return;
-    case "trainings":
+    }
+    case "trainings": {
       setStep(ctx, "course");
-      await ctx.reply("Який Ви курс?", { reply_markup: courseKeyboard() });
+      const hideMaster = ctx.session.registration?.institution === "ВТФК";
+      await ctx.reply("Який Ви курс?", { reply_markup: courseKeyboard(hideMaster) });
       return;
+    }
     case "source":
       setStep(ctx, "trainings");
       await ctx.reply("Оберіть тренінги та натисніть «Готово». ", {
@@ -375,7 +381,7 @@ export function registerRegistrationHandlers(
         return;
       }
       setStep(ctx, "course", { institution: text });
-      await ctx.reply("Який Ви курс?", { reply_markup: courseKeyboard() });
+      await ctx.reply("Який Ви курс?", { reply_markup: courseKeyboard(text === "ВТФК") });
       return;
     }
 
@@ -386,18 +392,23 @@ export function registerRegistrationHandlers(
         return;
       }
       setStep(ctx, "course", { institution });
-      await ctx.reply("Який Ви курс?", { reply_markup: courseKeyboard() });
+      await ctx.reply("Який Ви курс?", { reply_markup: courseKeyboard(institution === "ВТФК") });
       return;
     }
 
     if (hasStep(ctx.session.registration, "course")) {
+      const isVtfk = ctx.session.registration?.institution === "ВТФК";
       if (text === OTHER) {
         setStep(ctx, "courseOther");
         await ctx.reply("Напишіть Ваш курс.", { reply_markup: backKeyboard() });
         return;
       }
       if (!COURSES.includes(text as (typeof COURSES)[number])) {
-        await ctx.reply("Оберіть курс кнопкою нижче.", { reply_markup: courseKeyboard() });
+        await ctx.reply("Оберіть курс кнопкою нижче.", { reply_markup: courseKeyboard(isVtfk) });
+        return;
+      }
+      if (isVtfk && text === "магістр") {
+        await ctx.reply("У ВТФК немає магістратури. Оберіть інший курс.", { reply_markup: courseKeyboard(true) });
         return;
       }
       setStep(ctx, "trainings", { course: text, trainingIds: [] });
