@@ -34,6 +34,8 @@ export function institutionKeyboard(): Keyboard {
     .text("ВДПУ")
     .row()
     .text("ДонНУ")
+    .text("ХНУВС")
+    .row()
     .text(OTHER)
     .row()
     .text(BACK)

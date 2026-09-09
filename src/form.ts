@@ -7,7 +7,7 @@ export interface Training {
   active: boolean;
 }
 
-export const INSTITUTIONS = ["ВНТУ", "ВТФК", "ВНАУ", "ВДПУ", "ДонНУ"] as const;
+export const INSTITUTIONS = ["ВНТУ", "ВТФК", "ВНАУ", "ВДПУ", "ДонНУ", "ХНУВС"] as const;
 export const COURSES = ["1", "2", "3", "4", "магістр"] as const;
 export const DISCOVERY_SOURCES = [
   "Живі оголошення",

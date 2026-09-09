@@ -34,7 +34,7 @@ import {
 } from "../registration-state.js";
 import type { BotContext, RegistrationState, RegistrationStep } from "../types.js";
 import type { BotDependencies } from "../create-bot.js";
-import { normalizePhone, validateCustomAnswer, validateName } from "../../validators.js";
+import { normalizePhone, validateCourse, validateCustomAnswer, validateName } from "../../validators.js";
 
 function setStep(
   ctx: BotContext,
@@ -419,9 +419,9 @@ export function registerRegistrationHandlers(
     }
 
     if (hasStep(ctx.session.registration, "courseOther")) {
-      const course = validateCustomAnswer(text, 50);
+      const course = validateCourse(text);
       if (!course) {
-        await ctx.reply("Введіть Ваш курс (до 50 символів).");
+        await ctx.reply("Введіть коректний курс (наприклад: 5, 6, аспірант).");
         return;
       }
       if (ctx.session.registration?.institution === "ВТФК" && /маг[іi]ст(р|ер)/i.test(course)) {

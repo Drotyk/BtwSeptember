@@ -35,3 +35,14 @@ export function validateCustomAnswer(value: string, maxLength = 100): string | n
   const normalized = value.trim().split(/\s+/).join(" ");
   return normalized.length > 0 && normalized.length <= maxLength ? normalized : null;
 }
+
+const COURSE_NUMBER_PATTERN = /^[1-9][0-9]*$/;
+const COURSE_TEXT_PATTERN = /^\p{L}[\p{L}\p{N}\s'ʼ'-]{1,}/u;
+
+export function validateCourse(value: string): string | null {
+  const normalized = value.trim().split(/\s+/).join(" ");
+  if (!normalized) return null;
+  if (COURSE_NUMBER_PATTERN.test(normalized)) return normalized;
+  if (COURSE_TEXT_PATTERN.test(normalized) && normalized.length <= 50) return normalized;
+  return null;
+}
