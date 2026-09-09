@@ -28,7 +28,7 @@ export function phoneKeyboard(): Keyboard {
 export function institutionKeyboard(): Keyboard {
   return new Keyboard()
     .text("ВНТУ")
-    .text("ВНМУ")
+    .text("ВТФК")
     .row()
     .text("ВНАУ")
     .text("ВДПУ")

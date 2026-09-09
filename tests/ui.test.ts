@@ -447,7 +447,7 @@ describe("createDrawerContent", () => {
   it("відображар конkретні дані анкети в деталях", () => {
     const user = makeUser({
       name: "Петренко Олег",
-      institution: "ВНМУ",
+      institution: "ВТФК",
       course: "2",
     });
     const frag = createDrawerContent(user);
@@ -455,7 +455,7 @@ describe("createDrawerContent", () => {
     container.appendChild(frag);
 
     expect(container.textContent).toContain("Петренко Олег");
-    expect(container.textContent).toContain("ВНМУ");
+    expect(container.textContent).toContain("ВТФК");
     expect(container.textContent).toContain("2 курс");
   });
 
