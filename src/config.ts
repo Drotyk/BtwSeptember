@@ -85,7 +85,7 @@ export function getSettings(): Settings {
     eventRulesVersion: required("EVENT_RULES_VERSION"),
     adminUsername: required("ADMIN_USERNAME"),
     adminPasswordHash,
-    sessionTtlMs: positiveInteger("SESSION_TTL_SECONDS", 1800, 60) * 1000,
+    sessionTtlMs: positiveInteger("SESSION_TTL_SECONDS", 259200, 60) * 1000,
     adminSessionTtlMs: positiveInteger("ADMIN_SESSION_TTL_SECONDS", 3600, 300) * 1000,
     secureCookies: booleanValue("SECURE_COOKIES", nodeEnvironment === "production"),
     dropPendingUpdates: booleanValue("DROP_PENDING_UPDATES", false),

@@ -6,14 +6,20 @@ import type { Pool } from "pg";
 import type { Settings } from "../config.js";
 import { createSessionStorage, privateSessionKey } from "../repositories/sessions.repository.js";
 import { createUsersRepository, type UserRepository } from "../repositories/users.repository.js";
+import {
+  createSpeakersRepository,
+  type SpeakerRepository,
+} from "../repositories/speakers.repository.js";
 import { registerCallbackHandlers } from "./handlers/callbacks.js";
 import { registerCommandHandlers } from "./handlers/commands.js";
 import { registerRegistrationHandlers } from "./handlers/registration.js";
-import { getRulesChunks } from "../services/rules.service.js";
+import { createRulesService } from "../services/rules.service.js";
+import type { RulesService } from "../services/rules.service.js";
 import type { BotContext } from "./types.js";
 
 export interface BotDependencies {
   users: UserRepository;
+  speakers: SpeakerRepository;
   settings: Pick<
     Settings,
     | "chatInviteLink"
@@ -22,15 +28,16 @@ export interface BotDependencies {
     | "privacyPolicyVersion"
     | "eventRulesVersion"
   >;
-  getRulesChunks: () => Promise<string[]>;
+  rulesService: RulesService;
 }
 
 export function createBot(settings: Settings, pool: Pool): Bot<BotContext> {
   const bot = new Bot<BotContext>(settings.botToken);
   const dependencies: BotDependencies = {
     users: createUsersRepository(pool),
+    speakers: createSpeakersRepository(pool),
     settings,
-    getRulesChunks,
+    rulesService: createRulesService(settings.eventRulesVersion),
   };
 
   bot.use(
@@ -40,6 +47,12 @@ export function createBot(settings: Settings, pool: Pool): Bot<BotContext> {
       storage: createSessionStorage(pool, settings.sessionTtlMs),
     }),
   );
+  bot.use(async (ctx, next) => {
+    if (ctx.chat?.type === "private" && ctx.from && ctx.session.registration) {
+      ctx.session.telegramUsername = ctx.from.username ?? null;
+    }
+    await next();
+  });
   registerCommandHandlers(bot, dependencies);
   registerCallbackHandlers(bot, dependencies);
   registerRegistrationHandlers(bot, dependencies);

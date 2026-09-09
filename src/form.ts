@@ -17,59 +17,35 @@ export const DISCOVERY_SOURCES = [
 
 export const TRAININGS: readonly Training[] = [
   {
-    id: "cybersecurity",
-    title: "Кібербезпека та безпечна цифрова поведінка",
-    date: "10 листопада",
-    time: "17:00",
-    speaker: "Ольга Гунько",
+    id: "leadership",
+    title: "«Лідерство та командна робота: як об’єднувати людей і вести за собою»",
+    date: "14.09",
+    time: "",
+    speaker: "Сергій Притула",
     active: true,
   },
   {
-    id: "communication",
-    title: "Як говорити, щоб тебе уважно слухали, довіряли і запам’ятовували",
-    date: "11 листопада",
-    time: "17:00",
-    speaker: "Ольга Сольвар",
+    id: "self-realization",
+    title: "«Як реалізувати себе після навчання: знайти хорошу роботу чи створити власну справу?»",
+    date: "15.09",
+    time: "",
+    speaker: "Грабовський Олександр",
     active: true,
   },
   {
-    id: "business",
-    title: "Як почати бізнес з нуля без стартового капіталу",
-    date: "12 листопада",
-    time: "17:00",
-    speaker: "Оксана Ломич",
+    id: "acting",
+    title: "«Акторська майстерність на сцені та в житті»",
+    date: "16.09",
+    time: "",
+    speaker: "Костянтин Боровик",
     active: true,
   },
   {
-    id: "change",
-    title: "Як подолати страх змін і почати діяти",
-    date: "13 листопада",
-    time: "17:00",
-    speaker: "Світлана Пенькова",
-    active: true,
-  },
-  {
-    id: "interior",
-    title: "Як створити інтер’єр, який працює. Дизайн і психологія",
-    date: "14 листопада",
-    time: "17:00",
-    speaker: "Олег Горюн",
-    active: true,
-  },
-  {
-    id: "tourism",
-    title: "Туризм. Як подорожі змінюють людей і розширюють світогляд",
-    date: "15 листопада",
-    time: "11:00",
-    speaker: "Оксана Кнапдійс",
-    active: true,
-  },
-  {
-    id: "marketing",
-    title: "Довіра — нова валюта маркетингу. Як надихати, а не продавати",
-    date: "16 листопада",
-    time: "11:00",
-    speaker: "Антон Горін",
+    id: "first-job",
+    title: "«Як знайти першу роботу: з чого почати, коли ще немає великого досвіду»",
+    date: "17.09",
+    time: "",
+    speaker: "Сергій Андрощук",
     active: true,
   },
 ];
@@ -79,7 +55,9 @@ export function getTraining(id: string): Training | undefined {
 }
 
 export function getTrainingLabel(training: Training): string {
-  return `${training.date} | ${training.time} | ${training.speaker} | ${training.title}`;
+  return training.time
+    ? `${training.date} | ${training.time} | ${training.speaker} | ${training.title}`
+    : `${training.date} | ${training.speaker} | ${training.title}`;
 }
 
 export function getTrainingDate(training: Training): string {

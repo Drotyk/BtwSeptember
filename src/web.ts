@@ -9,6 +9,12 @@ import { TRAININGS, getTrainingLabel } from "./form.js";
 import { createUsersRepository } from "./repositories/users.repository.js";
 import { createNotificationsRepository } from "./repositories/notifications.repository.js";
 import { validateNotificationInput } from "./services/notification.service.js";
+import { createSpeakerService } from "./services/speaker.service.js";
+import { SpeakerValidationError } from "./services/speaker.service.js";
+import { createSpeakersRepository } from "./repositories/speakers.repository.js";
+import { createStatisticsRepository } from "./repositories/statistics.repository.js";
+import { listIncompleteRegistrations } from "./repositories/sessions.repository.js";
+import { getSpeakerAsset, SPEAKER_ASSETS, speakerAssetPath } from "./speaker-assets.js";
 
 const INDEX_FILE = resolve(process.cwd(), "public/index.html");
 const LOGIN_FILE = resolve(process.cwd(), "public/login.html");
@@ -74,6 +80,27 @@ function clientKey(request: IncomingMessage): string {
   return request.socket.remoteAddress ?? "unknown";
 }
 
+function speakerId(value: string): number | null {
+  const id = Number(value);
+  return Number.isSafeInteger(id) && id > 0 ? id : null;
+}
+
+function speakerInput(body: unknown): Record<string, unknown> {
+  return typeof body === "object" && body !== null ? (body as Record<string, unknown>) : {};
+}
+
+function percentage(count: number, total: number): number {
+  return total > 0 ? Math.round((count / total) * 1000) / 10 : 0;
+}
+
+async function readJsonBody(request: IncomingMessage): Promise<Record<string, unknown> | null> {
+  try {
+    return speakerInput(JSON.parse(await readBody(request)));
+  } catch {
+    return null;
+  }
+}
+
 async function handleLogin(
   request: IncomingMessage,
   response: ServerResponse,
@@ -136,6 +163,21 @@ async function handleRequest(
     return;
   }
 
+  const speakerAssetRoute = /^\/speaker-assets\/([a-z0-9-]+)$/.exec(url.pathname);
+  if (speakerAssetRoute && request.method === "GET") {
+    if (!(await auth.isAuthenticated(request))) {
+      sendJson(response, 401, { error: "Необхідна авторизація" });
+      return;
+    }
+    const asset = speakerAssetRoute[1] ? getSpeakerAsset(speakerAssetRoute[1]) : undefined;
+    if (!asset) {
+      sendJson(response, 404, { error: "Фото не знайдено" });
+      return;
+    }
+    await sendFile(response, speakerAssetPath(asset), asset.contentType);
+    return;
+  }
+
   if (url.pathname === "/api/login" && request.method === "POST") {
     await handleLogin(request, response, auth);
     return;
@@ -176,6 +218,104 @@ async function handleRequest(
       label: getTrainingLabel(t),
     }));
     sendJson(response, 200, { trainings });
+    return;
+  }
+
+  // ── Speakers API ──────────────────────────────────────────────────────
+
+  if (url.pathname === "/api/speaker-assets" && request.method === "GET") {
+    if (!(await auth.isAuthenticated(request))) {
+      sendJson(response, 401, { error: "Необхідна авторизація" });
+      return;
+    }
+    sendJson(response, 200, {
+      assets: SPEAKER_ASSETS.map(({ id, name, filename }) => ({ id, name, filename })),
+    });
+    return;
+  }
+
+  const speakerRoute = /^\/api\/speakers(?:\/([^/]+))?$/.exec(url.pathname);
+  if (speakerRoute) {
+    if (!(await auth.isAuthenticated(request))) {
+      sendJson(response, 401, { error: "Необхідна авторизація" });
+      return;
+    }
+
+    const service = createSpeakerService(createSpeakersRepository(pool));
+    const id = speakerRoute[1] ? speakerId(speakerRoute[1]) : null;
+    if (speakerRoute[1] && id === null) {
+      sendJson(response, 400, { error: "Некоректний ID спікера" });
+      return;
+    }
+
+    if (!id && request.method === "GET") {
+      const trainingId = url.searchParams.get("trainingId")?.trim() || undefined;
+      const speakers = await service.list(trainingId, false);
+      sendJson(response, 200, { speakers });
+      return;
+    }
+
+    if (id && request.method === "GET") {
+      const speaker = await service.findById(id);
+      if (!speaker) {
+        sendJson(response, 404, { error: "Спікера не знайдено" });
+        return;
+      }
+      sendJson(response, 200, { speaker });
+      return;
+    }
+
+    if ((request.method === "POST" && !id) || (request.method === "PATCH" && id)) {
+      const body = await readJsonBody(request);
+      if (!body) {
+        sendJson(response, 400, { error: "Невірний формат запиту" });
+        return;
+      }
+      const input: Record<string, unknown> = {};
+      if (typeof body.trainingId === "string") input.trainingId = body.trainingId;
+      if (typeof body.name === "string") input.name = body.name;
+      if (typeof body.description === "string") input.description = body.description;
+      if (typeof body.detailedDescription === "string") {
+        input.detailedDescription = body.detailedDescription;
+      }
+      if (body.photoFileId === null || typeof body.photoFileId === "string") {
+        input.photoFileId = body.photoFileId;
+      }
+      if (typeof body.sortOrder === "number") {
+        input.sortOrder = body.sortOrder;
+      } else if (typeof body.sortOrder === "string" && body.sortOrder.trim() !== "") {
+        input.sortOrder = Number(body.sortOrder);
+      }
+      if (typeof body.isActive === "boolean") input.isActive = body.isActive;
+
+      try {
+        const speaker = id ? await service.update(id, input) : await service.create(input);
+        if (!speaker) {
+          sendJson(response, 404, { error: "Спікера не знайдено" });
+          return;
+        }
+        sendJson(response, id ? 200 : 201, { speaker });
+      } catch (error) {
+        if (error instanceof SpeakerValidationError) {
+          sendJson(response, 400, { error: error.message });
+          return;
+        }
+        throw error;
+      }
+      return;
+    }
+
+    if (id && request.method === "DELETE") {
+      const deleted = await service.delete(id);
+      if (!deleted) {
+        sendJson(response, 404, { error: "Спікера не знайдено" });
+        return;
+      }
+      sendJson(response, 200, { ok: true });
+      return;
+    }
+
+    sendJson(response, 405, { error: "Метод не підтримується" });
     return;
   }
 
@@ -320,6 +460,65 @@ async function handleRequest(
   }
 
   // ── Users API ──────────────────────────────────────────────────────────
+
+  if (url.pathname === "/api/statistics" && request.method === "GET") {
+    if (!(await auth.isAuthenticated(request))) {
+      sendJson(response, 401, { error: "Необхідна авторизація" });
+      return;
+    }
+
+    const statistics = await createStatisticsRepository(pool).getUsersStatistics();
+    const averageTrainingsPerUser =
+      statistics.totalUsers > 0
+        ? Math.round((statistics.totalTrainingSelections / statistics.totalUsers) * 10) / 10
+        : 0;
+
+    sendJson(response, 200, {
+      summary: {
+        totalUsers: statistics.totalUsers,
+        usersWithTraining: statistics.usersWithTraining,
+        usersWithoutTraining: statistics.totalUsers - statistics.usersWithTraining,
+        totalTrainingSelections: statistics.totalTrainingSelections,
+        averageTrainingsPerUser,
+      },
+      trainingSelections: statistics.trainingSelections.map((item) => {
+        const training = TRAININGS.find(
+          (candidate) => candidate.id === item.id || getTrainingLabel(candidate) === item.id,
+        );
+        return {
+          id: item.id,
+          label: training?.title ?? item.id,
+          speaker: training?.speaker ?? "",
+          count: item.count,
+          percentage: percentage(item.count, statistics.totalUsers),
+        };
+      }),
+      discoverySources: statistics.discoverySources.map((item) => ({
+        ...item,
+        percentage: percentage(item.count, statistics.totalUsers),
+      })),
+      institutions: statistics.institutions.map((item) => ({
+        ...item,
+        percentage: percentage(item.count, statistics.totalUsers),
+      })),
+      courses: statistics.courses.map((item) => ({
+        ...item,
+        percentage: percentage(item.count, statistics.totalUsers),
+      })),
+    });
+    return;
+  }
+
+  if (url.pathname === "/api/incomplete-registrations" && request.method === "GET") {
+    if (!(await auth.isAuthenticated(request))) {
+      sendJson(response, 401, { error: "Необхідна авторизація" });
+      return;
+    }
+
+    const registrations = await listIncompleteRegistrations(pool);
+    sendJson(response, 200, { registrations });
+    return;
+  }
 
   if (url.pathname !== "/api/users" || request.method !== "GET") {
     sendJson(response, 404, { error: "Сторінку не знайдено" });

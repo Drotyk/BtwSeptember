@@ -4,6 +4,14 @@ import type { StorageAdapter } from "grammy";
 
 import type { SessionData } from "../bot/types.js";
 
+export interface IncompleteRegistrationRecord {
+  telegramUserId: number;
+  telegramUsername: string | null;
+  step: string;
+  updatedAt: Date;
+  expiresAt: Date;
+}
+
 export function privateSessionKey(ctx: Pick<Context, "chat" | "from">): string | undefined {
   if (ctx.chat?.type !== "private" || !ctx.from) return undefined;
   return `telegram:${ctx.from.id}`;
@@ -42,6 +50,32 @@ export function createSessionStorage(pool: Pool, ttlMs: number): StorageAdapter<
       await pool.query("DELETE FROM bot_sessions WHERE session_key = $1", [key]);
     },
   };
+}
+
+export async function listIncompleteRegistrations(
+  pool: Pool,
+): Promise<IncompleteRegistrationRecord[]> {
+  const result = await pool.query<IncompleteRegistrationRecord>(
+    `
+      SELECT
+        substring(s.session_key FROM 10)::bigint AS "telegramUserId",
+        NULLIF(s.data->>'telegramUsername', '') AS "telegramUsername",
+        s.data->'registration'->>'step' AS step,
+        s.updated_at AS "updatedAt",
+        s.expires_at AS "expiresAt"
+      FROM bot_sessions s
+      WHERE s.session_key LIKE 'telegram:%'
+        AND s.data ? 'registration'
+        AND s.expires_at > NOW()
+        AND NOT EXISTS (
+          SELECT 1
+          FROM users u
+          WHERE u.telegram_user_id = substring(s.session_key FROM 10)::bigint
+        )
+      ORDER BY s.updated_at DESC
+    `,
+  );
+  return result.rows;
 }
 
 export async function deleteExpiredSessions(pool: Pool): Promise<void> {

@@ -45,7 +45,7 @@ export default tseslint.config(
     },
   },
   {
-    // ui.test.ts imports public/app.js — an untyped Vanilla JS ES-module.
+    // ui.test.ts imports public/app.js --- an untyped Vanilla JS ES-module.
     // public/** is excluded from ESLint/TS, so unsafe-* rules cannot apply.
     files: ["tests/ui.test.ts"],
     rules: {

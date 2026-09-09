@@ -2,7 +2,7 @@
 /**
  * Тести UI-логіки public/app.js.
  *
- * Середовище: jsdom (не тестує CSS-адаптивність, лише DOM-структуру).
+ * Середовище: jsdom (не тестур CSS-адаптивність, лише DOM-структуру).
  *
  * Примітка щодо дат: використовуємо ISO-рядки та перевіряємо наявність
  * компонентів дати через regex, щоб уникнути залежності від часового поясу CI.
@@ -13,16 +13,18 @@ import {
   formatDate,
   pluralizeTrainings,
   formatTrainingCount,
+  formatStatisticNumber,
   parseTrainingLabel,
   createUserRow,
   createUserCard,
+  createStatisticsRow,
   createDetailSection,
   createConsentBadge,
   createDrawerContent,
   init,
 } from "../public/app.js";
 
-// ─── Helpers ────────────────────────────────────────────────────────────────
+// --- Helpers ----------------------------------------------------------------
 
 /** Мінімальна анкета для тестів */
 function makeUser(overrides = {}) {
@@ -36,7 +38,7 @@ function makeUser(overrides = {}) {
     course: "3",
     trainingIds: ["cybersecurity", "business", "change"],
     trainingDisplay: [
-      "10 листопада | 17:00 | Ольга Гунько | Кібербезпека та безпечна цифрова поведінка",
+      "10 листопада | 17:00 | Ольга рунько | Кібербезпека та безпечна цифрова поведінка",
       "12 листопада | 17:00 | Оксана Ломич | Як почати бізнес з нуля без стартового капіталу",
       "13 листопада | 17:00 | Світлана Пенькова | Як подолати страх змін і почати діяти",
     ],
@@ -53,41 +55,41 @@ function makeUser(overrides = {}) {
   };
 }
 
-// ─── formatDate ──────────────────────────────────────────────────────────────
+// --- formatDate --------------------------------------------------------------
 
 describe("formatDate", () => {
-  it("повертає «—» для null", () => {
-    expect(formatDate(null)).toBe("—");
+  it("повертає «-» для null", () => {
+    expect(formatDate(null)).toBe("-");
   });
 
-  it("повертає «—» для undefined", () => {
-    expect(formatDate(undefined)).toBe("—");
+  it("повертає «-» для undefined", () => {
+    expect(formatDate(undefined)).toBe("-");
   });
 
-  it("повертає «—» для порожнього рядка", () => {
-    expect(formatDate("")).toBe("—");
+  it("повертає «-» для порожнього рядка", () => {
+    expect(formatDate("")).toBe("-");
   });
 
-  it("повертає «—» для некоректного значення", () => {
-    expect(formatDate("not-a-date")).toBe("—");
+  it("повертає «-» для некоректного значення", () => {
+    expect(formatDate("not-a-date")).toBe("-");
   });
 
-  it("форматує коректний ISO-рядок (містить рік і коректний формат)", () => {
+  it("форматур коректний ISO-рядок (містить рік і коректний формат)", () => {
     const result = formatDate("2026-08-20T14:30:00.000Z");
     expect(result).toMatch(/2026/);
     // Повинен мати числа (день, місяць, хвилини)
     expect(result).toMatch(/\d/);
-    expect(result).not.toBe("—");
+    expect(result).not.toBe("-");
   });
 
   it("приймає об'єкт Date", () => {
     const result = formatDate(new Date("2026-08-20T14:30:00.000Z"));
     expect(result).toMatch(/2026/);
-    expect(result).not.toBe("—");
+    expect(result).not.toBe("-");
   });
 });
 
-// ─── pluralizeTrainings ───────────────────────────────────────────────────────
+// --- pluralizeTrainings -------------------------------------------------------
 
 describe("pluralizeTrainings", () => {
   it("1 тренінг", () => {
@@ -131,7 +133,7 @@ describe("pluralizeTrainings", () => {
   });
 });
 
-// ─── formatTrainingCount ─────────────────────────────────────────────────────
+// --- formatTrainingCount -----------------------------------------------------
 
 describe("formatTrainingCount", () => {
   it("повертає порожній рядок для порожнього масиву", () => {
@@ -159,22 +161,50 @@ describe("formatTrainingCount", () => {
   });
 });
 
-// ─── parseTrainingLabel ──────────────────────────────────────────────────────
+describe("statistics UI helpers", () => {
+  it("форматур число статистики локалізовано", () => {
+    expect(formatStatisticNumber(1234)).toContain("1");
+    expect(formatStatisticNumber(1234)).toContain("234");
+  });
+
+  it("створюр доступний рядок з прогресом", () => {
+    const row = createStatisticsRow(
+      { label: "Лідерство", speaker: "Сергій Притула", count: 2, percentage: 66.7 },
+      3,
+    );
+    const progress = row.querySelector('[role="progressbar"]');
+    expect(row.textContent).toContain("Лідерство");
+    expect(row.textContent).toContain("Сергій Притула");
+    expect(row.textContent).toContain("66,7%");
+    expect(progress?.getAttribute("aria-valuenow")).toBe("2");
+    expect(row.querySelector(".stats-row__fill")?.getAttribute("style")).toMatch(/66\.6/);
+  });
+});
+
+// --- parseTrainingLabel ------------------------------------------------------
 
 describe("parseTrainingLabel", () => {
   it("розбирає стандартний рядок", () => {
     const result = parseTrainingLabel(
-      "10 листопада | 17:00 | Ольга Гунько | Кібербезпека та безпечна цифрова поведінка",
+      "10 листопада | 17:00 | Ольга рунько | Кібербезпека та безпечна цифрова поведінка",
     );
     expect(result.date).toBe("10 листопада");
     expect(result.time).toBe("17:00");
-    expect(result.speaker).toBe("Ольга Гунько");
+    expect(result.speaker).toBe("Ольга рунько");
     expect(result.title).toBe("Кібербезпека та безпечна цифрова поведінка");
   });
 
   it("назва з «|» у тексті об'єднується правильно", () => {
     const result = parseTrainingLabel("15 листопада | 11:00 | Спікер | Назва | з пайпом");
     expect(result.title).toBe("Назва | з пайпом");
+  });
+
+  it("розбирає label без часу", () => {
+    const result = parseTrainingLabel("14.09 | Сергій Притула | «Лідерство та командна робота»");
+    expect(result.date).toBe("14.09");
+    expect(result.time).toBe("");
+    expect(result.speaker).toBe("Сергій Притула");
+    expect(result.title).toBe("«Лідерство та командна робота»");
   });
 
   it("порожній рядок не ламає парсер", () => {
@@ -186,7 +216,7 @@ describe("parseTrainingLabel", () => {
   });
 });
 
-// ─── createUserRow ───────────────────────────────────────────────────────────
+// --- createUserRow -----------------------------------------------------------
 
 describe("createUserRow", () => {
   it("рендерить рядок з 7 комірками", () => {
@@ -210,10 +240,10 @@ describe("createUserRow", () => {
     expect(row.textContent).not.toContain("Кібербезпека та безпечна цифрова поведінка");
   });
 
-  it("показує «—» для відсутніх тренінгів", () => {
+  it("показує «-» для відсутніх тренінгів", () => {
     const user = makeUser({ trainingIds: [], trainingDisplay: [] });
     const row = createUserRow(user, () => {});
-    expect(row.querySelector(".training-none")?.textContent).toBe("—");
+    expect(row.querySelector(".training-none")?.textContent).toBe("-");
   });
 
   it("показує Telegram з @", () => {
@@ -222,15 +252,15 @@ describe("createUserRow", () => {
     expect(row.textContent).toContain("@test_user");
   });
 
-  it("показує «—» для відсутнього Telegram", () => {
+  it("показує «-» для відсутнього Telegram", () => {
     const user = makeUser({ telegramUsername: null });
     const row = createUserRow(user, () => {});
-    // Другий рядок контактів
+    // рругий рядок контактів
     const contactsTd = row.querySelectorAll("td")[1];
-    expect(contactsTd?.querySelector(".cell-secondary")?.textContent).toBe("—");
+    expect(contactsTd?.querySelector(".cell-secondary")?.textContent).toBe("-");
   });
 
-  it("кнопка «Відкрити» викликає callback", () => {
+  it("кнопка «Відкрити» викликар callback", () => {
     const user = makeUser();
     const onOpen = vi.fn();
     const row = createUserRow(user, onOpen);
@@ -246,22 +276,22 @@ describe("createUserRow", () => {
     expect(btn?.getAttribute("aria-label")).toContain("Тест Тест");
   });
 
-  it("не використовує innerHTML для даних користувача (XSS-безпека)", () => {
+  it("не використовур innerHTML для даних користувача (XSS-безпека)", () => {
     const xssName = "<img src=x onerror=alert(1)>";
     const user = makeUser({ name: xssName });
     const row = createUserRow(user, () => {});
     // innerHTML рядка не повинен містити тег img вставлений через дані
     const nameEl = row.querySelector(".cell-primary");
     expect(nameEl?.textContent).toBe(xssName);
-    // Перевіряємо що тег не виконується — innerHTML не містить реального <img>
+    // Перевірярмо що тег не виконується - innerHTML не містить реального <img>
     expect(nameEl?.innerHTML).toBe(
-      // textContent встановлений — HTML-символи екрановані браузером
+      // textContent встановлений - HTML-символи екрановані браузером
       xssName.replace(/</g, "&lt;").replace(/>/g, "&gt;"),
     );
   });
 });
 
-// ─── createUserCard ──────────────────────────────────────────────────────────
+// --- createUserCard ----------------------------------------------------------
 
 describe("createUserCard", () => {
   it("містить ПІБ", () => {
@@ -288,7 +318,7 @@ describe("createUserCard", () => {
     expect(card.querySelector("button")?.textContent).toBe("Відкрити");
   });
 
-  it("кнопка викликає callback", () => {
+  it("кнопка викликар callback", () => {
     const user = makeUser();
     const onOpen = vi.fn();
     const card = createUserCard(user, onOpen);
@@ -297,7 +327,7 @@ describe("createUserCard", () => {
   });
 });
 
-// ─── createDetailSection ─────────────────────────────────────────────────────
+// --- createDetailSection -----------------------------------------------------
 
 describe("createDetailSection", () => {
   it("рендерить заголовок секції", () => {
@@ -322,14 +352,14 @@ describe("createDetailSection", () => {
     expect(values).toContain("3 курс");
   });
 
-  it("показує «—» для порожніх значень", () => {
+  it("показує «-» для порожніх значень", () => {
     const section = createDetailSection("Тест", [["Поле", ""]]);
     const value = section.querySelector(".detail-value");
-    expect(value?.textContent).toBe("—");
+    expect(value?.textContent).toBe("-");
   });
 });
 
-// ─── createConsentBadge ──────────────────────────────────────────────────────
+// --- createConsentBadge ------------------------------------------------------
 
 describe("createConsentBadge", () => {
   it("«Прийнято» для true зі success-стилем", () => {
@@ -348,10 +378,10 @@ describe("createConsentBadge", () => {
 
   it("показує дату для прийнятої згоди", () => {
     const badge = createConsentBadge(true, "2026-08-20T14:30:00.000Z");
-    // Дата рендериться окремим елементом після badge
+    // рата рендериться окремим елементом після badge
     const children = Array.from(badge.children);
     expect(children.length).toBe(2);
-    // Другий елемент — дата
+    // рругий елемент - дата
     expect(children[1]?.textContent).toMatch(/2026/);
   });
 
@@ -370,7 +400,7 @@ describe("createConsentBadge", () => {
   });
 });
 
-// ─── createDrawerContent ─────────────────────────────────────────────────────
+// --- createDrawerContent -----------------------------------------------------
 
 describe("createDrawerContent", () => {
   it("рендерить всі 7 секцій", () => {
@@ -393,7 +423,7 @@ describe("createDrawerContent", () => {
     expect(trainingCards.length).toBe(3);
   });
 
-  it("картка тренінгу містить назву (не обрізає через |)", () => {
+  it("картка тренінгу містить назву (не обрізар через |)", () => {
     const user = makeUser({
       trainingDisplay: ["15 листопада | 11:00 | Спікер | Назва тренінгу | з пайпом у тексті"],
     });
@@ -414,7 +444,7 @@ describe("createDrawerContent", () => {
     expect(container.querySelector(".training-empty")?.textContent).toBe("Тренінгів не обрано");
   });
 
-  it("відображає конkретні дані анкети в деталях", () => {
+  it("відображар конkретні дані анкети в деталях", () => {
     const user = makeUser({
       name: "Петренко Олег",
       institution: "ВНМУ",
@@ -461,7 +491,7 @@ describe("createDrawerContent", () => {
   });
 });
 
-// ─── init() — інтеграційний тест через jsdom ─────────────────────────────────
+// --- init() - інтеграційний тест через jsdom ---------------------------------
 
 describe("init (DOM integration)", () => {
   let originalFetch;
@@ -470,6 +500,29 @@ describe("init (DOM integration)", () => {
     // Мінімальна DOM-структура сторінки
     document.body.innerHTML = `
       <div class="page-wrapper">
+        <button id="tab-users"></button>
+        <button id="tab-statistics"></button>
+        <button id="tab-speakers"></button>
+        <button id="tab-notifications"></button>
+        <div id="users-panel"></div>
+        <div id="stats-panel">
+          <button id="stats-refresh"></button>
+          <button id="stats-retry"></button>
+          <div id="stats-loading"></div>
+          <div id="stats-error"></div>
+          <div id="stats-content">
+            <span id="stats-total-users"></span>
+            <span id="stats-users-with-training"></span>
+            <span id="stats-training-share"></span>
+            <span id="stats-training-selections"></span>
+            <span id="stats-average-trainings"></span>
+            <span id="stats-users-without-training"></span>
+            <div id="stats-trainings"></div>
+            <div id="stats-sources"></div>
+            <div id="stats-institutions"></div>
+            <div id="stats-courses"></div>
+          </div>
+        </div>
         <span id="total-count" hidden></span>
         <button id="logout"></button>
         <form id="search-form">
@@ -485,7 +538,7 @@ describe("init (DOM integration)", () => {
             <table><colgroup><col/><col/><col/><col/><col/><col/><col/></colgroup>
             <thead><tr>
               <th>Учасник</th><th>Контакти</th><th>Навчання</th>
-              <th>Тренінги</th><th>Джерело</th><th>Подано</th><th></th>
+              <th>Тренінги</th><th>ржерело</th><th>Подано</th><th></th>
             </tr></thead>
             <tbody id="users-body"></tbody></table>
           </div>
@@ -500,14 +553,14 @@ describe("init (DOM integration)", () => {
         </section>
         <footer id="pagination-bar" hidden>
           <span id="pagination-meta"></span>
-          <button id="previous">← Попередня</button>
-          <button id="next">Наступна →</button>
+          <button id="previous">⬅️ Попередня</button>
+          <button id="next">Наступна ➡️</button>
         </footer>
         <section id="cards-list"></section>
         <footer id="mobile-pagination-bar" hidden>
           <span id="mobile-pagination-meta"></span>
-          <button id="mobile-previous">← Попередня</button>
-          <button id="mobile-next">Наступна →</button>
+          <button id="mobile-previous">⬅️ Попередня</button>
+          <button id="mobile-next">Наступна ➡️</button>
         </footer>
         <div id="drawer-overlay" class="drawer-overlay"></div>
         <aside id="drawer" aria-hidden="true" role="dialog" aria-modal="true" aria-labelledby="drawer-title">
@@ -549,7 +602,7 @@ describe("init (DOM integration)", () => {
     globalThis.fetch = vi.fn().mockRejectedValue(new Error("Network error"));
   }
 
-  // ── Loading state ───────────────────────────────────────────────────────
+  // -- Loading state -------------------------------------------------------
 
   it("skeleton видимий під час завантаження", () => {
     mockFetch([], 0);
@@ -559,7 +612,7 @@ describe("init (DOM integration)", () => {
     expect(skeleton?.hidden).toBe(false);
   });
 
-  // ── Empty state ─────────────────────────────────────────────────────────
+  // -- Empty state ---------------------------------------------------------
 
   it("порожній стан відображається коли нема анкет", async () => {
     mockFetch([], 0);
@@ -570,7 +623,7 @@ describe("init (DOM integration)", () => {
     expect(document.getElementById("empty-title")?.textContent).toBe("Анкет поки немає");
   });
 
-  // ── Error state ─────────────────────────────────────────────────────────
+  // -- Error state ---------------------------------------------------------
 
   it("error state відображається при помилці мережі", async () => {
     mockFetchError();
@@ -580,7 +633,7 @@ describe("init (DOM integration)", () => {
     });
   });
 
-  it("retry кнопка повторює запит", async () => {
+  it("retry кнопка повторюр запит", async () => {
     mockFetchError();
     init();
     await vi.waitFor(() => {
@@ -596,7 +649,7 @@ describe("init (DOM integration)", () => {
     });
   });
 
-  // ── Table render ────────────────────────────────────────────────────────
+  // -- Table render --------------------------------------------------------
 
   it("таблиця рендерить рядки з анкетами", async () => {
     mockFetch([makeUser(), makeUser({ id: "43", name: "Іншой Учасник" })], 2);
@@ -617,14 +670,14 @@ describe("init (DOM integration)", () => {
     expect(row?.querySelector(".training-badge")?.textContent).toBe("3 тренінги");
   });
 
-  // ── Pagination ──────────────────────────────────────────────────────────
+  // -- Pagination ----------------------------------------------------------
 
-  it("pagination-meta показує «Показано 1–1 із 1»", async () => {
+  it("pagination-meta показує «Показано 1-1 із 1»", async () => {
     mockFetch([makeUser()], 1);
     init();
     await vi.waitFor(() => {
       expect(document.getElementById("pagination-meta")?.textContent).toContain(
-        "Показано 1–1 із 1",
+        "Показано 1-1 із 1",
       );
     });
   });
@@ -677,9 +730,9 @@ describe("init (DOM integration)", () => {
     });
   });
 
-  // ── Search ──────────────────────────────────────────────────────────────
+  // -- Search --------------------------------------------------------------
 
-  it("пошук передає search-параметр у fetch", async () => {
+  it("пошук передар search-параметр у fetch", async () => {
     mockFetch([], 0);
     init();
     await vi.waitFor(() => expect(document.getElementById("empty-state")?.hidden).toBe(false));
@@ -706,6 +759,40 @@ describe("init (DOM integration)", () => {
     });
   });
 
+  it("завантажур статистику в окремій вкладці", async () => {
+    mockFetch([], 0);
+    init();
+    await vi.waitFor(() => expect(document.getElementById("empty-state")?.hidden).toBe(false));
+
+    const statsFetch = vi.fn().mockResolvedValue({
+      ok: true,
+      status: 200,
+      json: async () => ({
+        summary: {
+          totalUsers: 10,
+          usersWithTraining: 8,
+          usersWithoutTraining: 2,
+          totalTrainingSelections: 13,
+          averageTrainingsPerUser: 1.3,
+        },
+        trainingSelections: [{ label: "Лідерство", speaker: "Спікер", count: 5, percentage: 50 }],
+        discoverySources: [{ label: "Від знайомих", count: 6, percentage: 60 }],
+        institutions: [],
+        courses: [],
+      }),
+    });
+    globalThis.fetch = statsFetch;
+    document.getElementById("tab-statistics")?.click();
+
+    await vi.waitFor(() => {
+      expect(document.getElementById("stats-total-users")?.textContent).toBe("10");
+    });
+    expect(statsFetch).toHaveBeenCalledWith("/api/statistics", expect.any(Object));
+    expect(document.querySelector("#stats-trainings .stats-row")?.textContent).toContain(
+      "Лідерство",
+    );
+  });
+
   it("пошук показує повідомлення з запитом у empty state", async () => {
     mockFetch([], 0);
     init();
@@ -724,7 +811,7 @@ describe("init (DOM integration)", () => {
     expect(document.getElementById("empty-desc")?.textContent).toContain("Тест запит");
   });
 
-  it("очищення пошуку прибирає запит та перезавантажує", async () => {
+  it("очищення пошуку прибирар запит та перезавантажур", async () => {
     mockFetch([], 0);
     init();
     await vi.waitFor(() => expect(document.getElementById("empty-state")?.hidden).toBe(false));
@@ -761,9 +848,9 @@ describe("init (DOM integration)", () => {
     expect(url.searchParams.get("search")).toBe("");
   });
 
-  // ── Drawer ──────────────────────────────────────────────────────────────
+  // -- Drawer --------------------------------------------------------------
 
-  it("відкриває drawer після натискання «Відкрити»", async () => {
+  it("відкривар drawer після натискання «Відкрити»", async () => {
     mockFetch([makeUser()], 1);
     init();
     await vi.waitFor(() => {
@@ -789,7 +876,7 @@ describe("init (DOM integration)", () => {
     expect(document.getElementById("drawer-title")?.textContent).toBe("Тестовий Учасник");
   });
 
-  it("закриває drawer через кнопку ×", async () => {
+  it("закривар drawer через кнопку ×", async () => {
     mockFetch([makeUser()], 1);
     init();
     await vi.waitFor(() => {
@@ -803,7 +890,7 @@ describe("init (DOM integration)", () => {
     expect(document.getElementById("drawer")?.getAttribute("aria-hidden")).toBe("true");
   });
 
-  it("закриває drawer через Escape", async () => {
+  it("закривар drawer через Escape", async () => {
     mockFetch([makeUser()], 1);
     init();
     await vi.waitFor(() => {
@@ -817,7 +904,7 @@ describe("init (DOM integration)", () => {
     expect(document.getElementById("drawer")?.getAttribute("aria-hidden")).toBe("true");
   });
 
-  it("закриває drawer через overlay", async () => {
+  it("закривар drawer через overlay", async () => {
     mockFetch([makeUser()], 1);
     init();
     await vi.waitFor(() => {
@@ -829,7 +916,7 @@ describe("init (DOM integration)", () => {
     expect(document.getElementById("drawer")?.getAttribute("aria-hidden")).toBe("true");
   });
 
-  it("блокує прокручування сторінки при відкритому drawer", async () => {
+  it("блокур прокручування сторінки при відкритому drawer", async () => {
     mockFetch([makeUser()], 1);
     init();
     await vi.waitFor(() => {
@@ -843,7 +930,7 @@ describe("init (DOM integration)", () => {
     expect(document.body.classList.contains("drawer-open")).toBe(false);
   });
 
-  // ── Mobile cards ────────────────────────────────────────────────────────
+  // -- Mobile cards --------------------------------------------------------
 
   it("мобільні картки рендеруються паралельно з таблицею", async () => {
     mockFetch([makeUser(), makeUser({ id: "55" })], 2);
@@ -867,7 +954,7 @@ describe("init (DOM integration)", () => {
     expect(card?.textContent).toContain("3 тренінги");
   });
 
-  // ── AbortController ─────────────────────────────────────────────────────
+  // -- AbortController -----------------------------------------------------
 
   it("попередній запит скасовується при новому пошуку", async () => {
     // Перший запит «завислий»
@@ -892,7 +979,7 @@ describe("init (DOM integration)", () => {
 
     init();
 
-    // Другий запит (пошук)
+    // рругий запит (пошук)
     const searchInput = /** @type {HTMLInputElement} */ document.getElementById("search");
     searchInput.value = "новий";
     document
@@ -903,7 +990,7 @@ describe("init (DOM integration)", () => {
       expect(document.querySelectorAll("#users-body tr").length).toBe(1);
     });
 
-    // Перший запит вирішується — не повинен перезаписати результат
+    // Перший запит вирішурться - не повинен перезаписати результат
     resolveFirst({
       ok: true,
       status: 200,

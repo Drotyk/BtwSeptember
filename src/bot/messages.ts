@@ -2,28 +2,21 @@ import type { Settings } from "../config.js";
 import { getTrainingLabel, type Training } from "../form.js";
 import type { RegistrationState } from "./types.js";
 
-export function consentIntro(
-  settings: Pick<Settings, "privacyPolicyUrl" | "eventRulesUrl">,
-): string {
+export function consentIntro(settings: Pick<Settings, "privacyPolicyUrl">): string {
   return (
-    "Перед завершенням анкети ознайомтеся, будь ласка, з документами:\n" +
-    `Політика обробки персональних даних: ${settings.privacyPolicyUrl}\n` +
-    `Правила BTW: ${settings.eventRulesUrl}\n\n` +
+    "Перед завершенням анкети ознайомтеся, будь ласка, з документом:\n" +
+    `Політика обробки персональних даних: ${settings.privacyPolicyUrl}\n\n` +
     "Ми збираємо ім’я, номер телефону, Telegram ID/username, навчальний заклад, курс, " +
     "обрані тренінги та джерело інформації, щоб зареєструвати Вас на BTW і зв’язатися щодо заходу."
   );
 }
 
 export function privacyMessage(
-  settings: Pick<
-    Settings,
-    "privacyPolicyUrl" | "eventRulesUrl" | "privacyPolicyVersion" | "eventRulesVersion"
-  >,
+  settings: Pick<Settings, "privacyPolicyUrl" | "privacyPolicyVersion">,
 ): string {
   return (
     "BTW обробляє дані лише для організації заходу та комунікації з учасниками.\n\n" +
-    `Політика обробки персональних даних (версія ${settings.privacyPolicyVersion}): ${settings.privacyPolicyUrl}\n` +
-    `Правила BTW (версія ${settings.eventRulesVersion}): ${settings.eventRulesUrl}`
+    `Політика обробки персональних даних (версія ${settings.privacyPolicyVersion}): ${settings.privacyPolicyUrl}`
   );
 }
 

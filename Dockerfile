@@ -5,6 +5,7 @@ COPY package*.json ./
 RUN npm ci
 COPY tsconfig.json ./
 COPY src ./src
+COPY content ./content
 COPY migrations ./migrations
 RUN npm run build
 
@@ -17,8 +18,10 @@ RUN addgroup -S btw && adduser -S -G btw btw
 COPY package*.json ./
 RUN npm ci --omit=dev && npm cache clean --force
 COPY --from=build --chown=btw:btw /app/dist ./dist
+COPY --from=build --chown=btw:btw /app/content ./content
 COPY --from=build --chown=btw:btw /app/migrations ./migrations
 COPY --chown=btw:btw public ./public
+COPY --chown=btw:btw seeker ./seeker
 
 USER btw
 EXPOSE 3000

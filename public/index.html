@@ -3,7 +3,7 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>BTW — анкети</title>
+    <title>BTW - анкети</title>
     <meta name="description" content="Захищений перегляд і керування збереженими анкетами BTW" />
     <style>
       /* ─── Design tokens ──────────────────────────────────────────── */
@@ -859,6 +859,227 @@
         font-weight: 600;
       }
 
+      /* ── Speakers ───────────────────────────────────────────── */
+      .speaker-panel {
+        display: none;
+      }
+
+      .speaker-panel.is-visible {
+        display: block;
+      }
+
+      /* ── Statistics ───────────────────────────────────────────── */
+      .stats-panel {
+        display: none;
+      }
+
+      .stats-panel.is-visible {
+        display: block;
+      }
+
+      /* ── Incomplete registrations ──────────────────────────────── */
+      .incomplete-panel {
+        display: none;
+      }
+
+      .incomplete-panel.is-visible {
+        display: block;
+      }
+
+      /* Incomplete table column widths */
+      .col-incomplete-user {
+        width: 200px;
+      }
+      .col-incomplete-step {
+        width: 220px;
+      }
+      .col-incomplete-updated {
+        width: 160px;
+      }
+      .col-incomplete-expires {
+        width: 160px;
+      }
+
+      .stats-header {
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        gap: 16px;
+        margin-bottom: 16px;
+      }
+
+      .stats-header__title {
+        font-size: 16px;
+        font-weight: 600;
+      }
+
+      .stats-header__subtitle {
+        margin-top: 4px;
+        color: var(--text-secondary);
+        font-size: 13px;
+      }
+
+      .stats-summary {
+        display: grid;
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        gap: 12px;
+        margin-bottom: 12px;
+      }
+
+      .stats-summary-card,
+      .stats-section {
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-radius: var(--radius-lg);
+      }
+
+      .stats-summary-card {
+        padding: 18px 20px;
+      }
+
+      .stats-summary-card__label {
+        display: block;
+        color: var(--text-secondary);
+        font-size: 12px;
+      }
+
+      .stats-summary-card__value {
+        display: block;
+        margin-top: 6px;
+        color: var(--text-primary);
+        font-size: 28px;
+        font-weight: 700;
+        letter-spacing: -0.03em;
+      }
+
+      .stats-summary-card__hint {
+        display: block;
+        min-height: 18px;
+        margin-top: 2px;
+        color: var(--text-secondary);
+        font-size: 12px;
+      }
+
+      .stats-grid {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 12px;
+      }
+
+      .stats-section {
+        padding: 20px;
+      }
+
+      .stats-section__title {
+        margin-bottom: 16px;
+        color: var(--text-primary);
+        font-size: 14px;
+        font-weight: 600;
+      }
+
+      .stats-list {
+        display: flex;
+        flex-direction: column;
+        gap: 14px;
+      }
+
+      .stats-row {
+        min-width: 0;
+      }
+
+      .stats-row__top {
+        display: flex;
+        align-items: baseline;
+        justify-content: space-between;
+        gap: 12px;
+        margin-bottom: 6px;
+      }
+
+      .stats-row__label {
+        min-width: 0;
+        overflow: hidden;
+        color: var(--text-primary);
+        font-size: 13px;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+
+      .stats-row__speaker {
+        display: block;
+        overflow: hidden;
+        color: var(--text-secondary);
+        font-size: 11px;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+
+      .stats-row__value {
+        flex-shrink: 0;
+        color: var(--text-secondary);
+        font-size: 12px;
+        white-space: nowrap;
+      }
+
+      .stats-row__track {
+        height: 6px;
+        overflow: hidden;
+        background: var(--surface-raised);
+        border-radius: 6px;
+      }
+
+      .stats-row__fill {
+        height: 100%;
+        min-width: 2px;
+        background: var(--accent);
+        border-radius: inherit;
+        transition: width 200ms ease;
+      }
+
+      .stats-empty,
+      .stats-error {
+        color: var(--text-secondary);
+        font-size: 13px;
+      }
+
+      .stats-error {
+        padding: 40px 20px;
+        text-align: center;
+      }
+
+      @media (max-width: 900px) {
+        .stats-summary {
+          grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+      }
+
+      @media (max-width: 640px) {
+        .stats-header {
+          align-items: stretch;
+          flex-direction: column;
+        }
+
+        .stats-grid {
+          grid-template-columns: 1fr;
+        }
+      }
+
+      .speaker-photo-id {
+        max-width: 280px;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+
+      .speaker-photo-preview {
+        display: block;
+        width: 44px;
+        height: 44px;
+        margin-top: 6px;
+        border-radius: 50%;
+        object-fit: cover;
+        border: 1px solid var(--border);
+      }
+
       /* Notification status badges */
       .status-badge {
         display: inline-flex;
@@ -1104,7 +1325,10 @@
       <!-- Tab navigation -->
       <nav class="tab-bar" aria-label="Розділи">
         <button class="tab-btn is-active" id="tab-users" type="button">👥 Анкети</button>
+        <button class="tab-btn" id="tab-statistics" type="button">📊 Статистика</button>
+        <button class="tab-btn" id="tab-speakers" type="button">🎤 Спікери</button>
         <button class="tab-btn" id="tab-notifications" type="button">🔔 Оповіщення</button>
+        <button class="tab-btn" id="tab-incomplete" type="button">⏳ Незавершені</button>
       </nav>
 
       <div id="users-panel">
@@ -1251,6 +1475,116 @@
         </footer>
       </div>
 
+      <!-- ── Statistics panel ─────────────────────────────────── -->
+      <div class="stats-panel" id="stats-panel">
+        <div class="stats-header">
+          <div>
+            <div class="stats-header__title">📊 Статистика учасників</div>
+            <div class="stats-header__subtitle">Агреговані дані за всіма збереженими анкетами</div>
+          </div>
+          <button class="btn btn-secondary btn-sm" id="stats-refresh" type="button">Оновити</button>
+        </div>
+
+        <div class="stats-error" id="stats-error" hidden role="alert">
+          <div>Не вдалося завантажити статистику</div>
+          <button class="btn btn-secondary btn-sm" id="stats-retry" type="button">
+            Спробувати ще раз
+          </button>
+        </div>
+
+        <div id="stats-loading" class="skeleton-wrap" hidden aria-hidden="true">
+          <div class="skeleton-row">
+            <div class="skeleton-cell" style="width: 180px"></div>
+            <div class="skeleton-cell" style="width: 120px"></div>
+            <div class="skeleton-cell" style="width: 160px"></div>
+          </div>
+          <div class="skeleton-row">
+            <div class="skeleton-cell" style="width: 140px"></div>
+            <div class="skeleton-cell" style="width: 200px"></div>
+            <div class="skeleton-cell" style="width: 100px"></div>
+          </div>
+        </div>
+
+        <div id="stats-content" hidden>
+          <section class="stats-summary" aria-label="Зведені показники">
+            <article class="stats-summary-card">
+              <span class="stats-summary-card__label">Усього учасників</span>
+              <strong class="stats-summary-card__value" id="stats-total-users">0</strong>
+              <span class="stats-summary-card__hint">збережених анкет</span>
+            </article>
+            <article class="stats-summary-card">
+              <span class="stats-summary-card__label">Обрали тренінги</span>
+              <strong class="stats-summary-card__value" id="stats-users-with-training">0</strong>
+              <span class="stats-summary-card__hint" id="stats-training-share"></span>
+            </article>
+            <article class="stats-summary-card">
+              <span class="stats-summary-card__label">Всього виборів</span>
+              <strong class="stats-summary-card__value" id="stats-training-selections">0</strong>
+              <span class="stats-summary-card__hint" id="stats-average-trainings"></span>
+            </article>
+            <article class="stats-summary-card">
+              <span class="stats-summary-card__label">Без обраного тренінгу</span>
+              <strong class="stats-summary-card__value" id="stats-users-without-training">0</strong>
+              <span class="stats-summary-card__hint"></span>
+            </article>
+          </section>
+
+          <div class="stats-grid">
+            <section class="stats-section" aria-labelledby="stats-trainings-title">
+              <h2 class="stats-section__title" id="stats-trainings-title">
+                Популярність тренінгів
+              </h2>
+              <div class="stats-list" id="stats-trainings"></div>
+            </section>
+            <section class="stats-section" aria-labelledby="stats-sources-title">
+              <h2 class="stats-section__title" id="stats-sources-title">
+                Звідки дізналися про BTW
+              </h2>
+              <div class="stats-list" id="stats-sources"></div>
+            </section>
+            <section class="stats-section" aria-labelledby="stats-institutions-title">
+              <h2 class="stats-section__title" id="stats-institutions-title">Навчальні заклади</h2>
+              <div class="stats-list" id="stats-institutions"></div>
+            </section>
+            <section class="stats-section" aria-labelledby="stats-courses-title">
+              <h2 class="stats-section__title" id="stats-courses-title">Курси</h2>
+              <div class="stats-list" id="stats-courses"></div>
+            </section>
+          </div>
+        </div>
+      </div>
+
+      <!-- ── Speakers panel ──────────────────────────────────── -->
+      <div class="speaker-panel" id="speaker-panel">
+        <div class="notif-header">
+          <span class="notif-header__title">🎤 Спікери</span>
+          <button class="btn btn-primary btn-sm" id="create-speaker-btn" type="button">
+            + Додати спікера
+          </button>
+        </div>
+        <section class="table-section" aria-label="Список спікерів">
+          <div class="table-scroll" id="speaker-table-scroll" hidden>
+            <table aria-label="Таблиця спікерів">
+              <thead>
+                <tr>
+                  <th scope="col">Тренінг</th>
+                  <th scope="col">Спікер</th>
+                  <th scope="col">Порядок</th>
+                  <th scope="col">Статус</th>
+                  <th scope="col"><span class="visually-hidden">Дії</span></th>
+                </tr>
+              </thead>
+              <tbody id="speaker-body"></tbody>
+            </table>
+          </div>
+          <div class="state-block" id="speaker-empty" role="status">
+            <div class="state-block__icon" aria-hidden="true">🎤</div>
+            <div class="state-block__title">Спікерів поки немає</div>
+            <div class="state-block__desc">Додайте першого спікера кнопкою вище</div>
+          </div>
+        </section>
+      </div>
+
       <!-- ── Notifications panel ────────────────────────────── -->
       <div class="notif-panel" id="notif-panel">
         <div class="notif-header">
@@ -1320,6 +1654,73 @@
             </button>
           </nav>
         </footer>
+      </div>
+
+      <!-- ── Incomplete registrations panel ──────────────────── -->
+      <div class="incomplete-panel" id="incomplete-panel">
+        <div class="notif-header">
+          <span class="notif-header__title">⏳ Незавершені реєстрації</span>
+          <button class="btn btn-secondary btn-sm" id="incomplete-refresh" type="button">Оновити</button>
+        </div>
+
+        <!-- Skeleton -->
+        <div id="incomplete-loading" class="skeleton-wrap" aria-hidden="true">
+          <div class="skeleton-row">
+            <div class="skeleton-cell" style="width: 160px"></div>
+            <div class="skeleton-cell" style="width: 180px"></div>
+            <div class="skeleton-cell" style="width: 130px"></div>
+            <div class="skeleton-cell" style="width: 130px"></div>
+          </div>
+          <div class="skeleton-row">
+            <div class="skeleton-cell" style="width: 140px"></div>
+            <div class="skeleton-cell" style="width: 200px"></div>
+            <div class="skeleton-cell" style="width: 110px"></div>
+            <div class="skeleton-cell" style="width: 120px"></div>
+          </div>
+          <div class="skeleton-row">
+            <div class="skeleton-cell" style="width: 120px"></div>
+            <div class="skeleton-cell" style="width: 160px"></div>
+            <div class="skeleton-cell" style="width: 140px"></div>
+            <div class="skeleton-cell" style="width: 100px"></div>
+          </div>
+        </div>
+
+        <!-- Table -->
+        <section class="table-section" aria-label="Незавершені реєстрації">
+          <div class="table-scroll" id="incomplete-content" hidden>
+            <table aria-label="Таблиця незавершених реєстрацій">
+              <colgroup>
+                <col class="col-incomplete-user" />
+                <col class="col-incomplete-step" />
+                <col class="col-incomplete-updated" />
+                <col class="col-incomplete-expires" />
+              </colgroup>
+              <thead>
+                <tr>
+                  <th scope="col">Користувач</th>
+                  <th scope="col">Зупинився на кроці</th>
+                  <th scope="col">Остання активність</th>
+                  <th scope="col">Сесія діє до</th>
+                </tr>
+              </thead>
+              <tbody id="incomplete-body"></tbody>
+            </table>
+          </div>
+
+          <!-- Empty state -->
+          <div class="state-block" id="incomplete-empty" hidden role="status">
+            <div class="state-block__icon" aria-hidden="true">✅</div>
+            <div class="state-block__title">Незавершених реєстрацій немає</div>
+            <div class="state-block__desc">Усі активні сесії завершили реєстрацію</div>
+          </div>
+
+          <!-- Error state -->
+          <div class="state-block" id="incomplete-error" hidden role="alert">
+            <div class="state-block__icon" aria-hidden="true">⚠️</div>
+            <div class="state-block__title">Не вдалося завантажити дані</div>
+            <div class="state-block__desc">Перевірте з'єднання або спробуйте ще раз</div>
+          </div>
+        </section>
       </div>
     </div>
 
@@ -1429,6 +1830,89 @@
         <div class="modal-footer">
           <span class="preview-count" id="notif-preview-count"></span>
           <button class="btn btn-primary" id="notif-submit" type="button">Надіслати</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── Speaker modal ────────────────────────────────────── -->
+    <div class="modal-overlay" id="speaker-overlay">
+      <div class="modal" role="dialog" aria-modal="true" aria-labelledby="speaker-modal-title">
+        <div class="modal-header">
+          <h2 class="modal-title" id="speaker-modal-title">Новий спікер</h2>
+          <button class="drawer-close" id="speaker-close" type="button" aria-label="Закрити">
+            ×
+          </button>
+        </div>
+        <div class="modal-body">
+          <div class="form-group">
+            <label class="form-label" for="speaker-training">Тренінг</label>
+            <select class="form-select" id="speaker-training">
+              <option value="">Оберіть тренінг</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="speaker-photo"
+              >Telegram photo/file ID або локальний asset</label
+            >
+            <input
+              class="form-input"
+              id="speaker-photo"
+              list="speaker-photo-assets"
+              type="text"
+              maxlength="512"
+              placeholder="asset:serhiy-prytula або Telegram file_id"
+              required
+            />
+            <datalist id="speaker-photo-assets"></datalist>
+            <span class="form-hint"
+              >Для доданих JPG оберіть локальний asset, або вставте Telegram file_id.</span
+            >
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="speaker-name">Ім’я</label>
+            <input class="form-input" id="speaker-name" type="text" maxlength="100" required />
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="speaker-description">Короткий опис</label>
+            <textarea
+              class="form-textarea"
+              id="speaker-description"
+              maxlength="2000"
+              required
+            ></textarea>
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="speaker-detailed-description">Детальний опис</label>
+            <textarea
+              class="form-textarea"
+              id="speaker-detailed-description"
+              maxlength="4000"
+              required
+            ></textarea>
+            <span class="form-hint">Показується після натискання кнопки «Детальніше».</span>
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label" for="speaker-order">Порядок</label>
+              <input
+                class="form-input"
+                id="speaker-order"
+                type="number"
+                min="0"
+                step="1"
+                value="0"
+                required
+              />
+            </div>
+            <label class="form-radio" style="align-self: end; padding-bottom: 10px">
+              <input id="speaker-active" type="checkbox" checked /> Активний
+            </label>
+          </div>
+          <div class="form-error" id="speaker-error" hidden></div>
+        </div>
+        <div class="modal-footer">
+          <button class="btn btn-secondary" id="speaker-cancel" type="button">Скасувати</button>
+          <button class="btn btn-primary" id="speaker-submit" type="button">Зберегти</button>
         </div>
       </div>
     </div>

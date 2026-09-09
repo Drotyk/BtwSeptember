@@ -2,7 +2,9 @@ import type { Pool } from "pg";
 
 export interface ConsentRecord {
   personalDataPolicyVersion: string;
+  personalDataConsentAt?: Date;
   eventRulesVersion: string;
+  eventRulesConsentAt?: Date;
 }
 
 export interface UserRecord {
@@ -41,6 +43,7 @@ export interface UserRepository {
     discoverySource: string;
     consent: ConsentRecord;
   }): Promise<void>;
+  acceptRules(telegramUserId: number, version: string, acceptedAt: Date): Promise<boolean>;
   deleteByTelegramUserId(telegramUserId: number): Promise<boolean>;
   list(input: { page: number; pageSize: number; search: string }): Promise<{
     users: UserRecord[];
@@ -96,7 +99,7 @@ export function createUsersRepository(pool: Pool): UserRepository {
           personal_data_policy_version, event_rules_consent,
           event_rules_consent_at, event_rules_version
         )
-        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, TRUE, NOW(), $10, TRUE, NOW(), $11)
+        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, TRUE, $10, $11, TRUE, $12, $13)
         ON CONFLICT (telegram_user_id) DO UPDATE SET
           phone_number = EXCLUDED.phone_number,
           full_name = EXCLUDED.full_name,
@@ -124,10 +127,27 @@ export function createUsersRepository(pool: Pool): UserRepository {
           input.trainingIds,
           input.trainings,
           input.discoverySource,
+          input.consent.personalDataConsentAt ?? new Date(),
           input.consent.personalDataPolicyVersion,
+          input.consent.eventRulesConsentAt ?? new Date(),
           input.consent.eventRulesVersion,
         ],
       );
+    },
+
+    async acceptRules(telegramUserId, version, acceptedAt) {
+      const result = await pool.query(
+        `
+        UPDATE users
+        SET event_rules_consent = TRUE,
+            event_rules_consent_at = $2,
+            event_rules_version = $3,
+            updated_at = NOW()
+        WHERE telegram_user_id = $1
+        `,
+        [telegramUserId, acceptedAt, version],
+      );
+      return (result.rowCount ?? 0) > 0;
     },
 
     async deleteByTelegramUserId(telegramUserId) {

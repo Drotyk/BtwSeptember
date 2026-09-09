@@ -1,22 +1,22 @@
 /**
- * BTW — Анкети. Клієнтська логіка захищеної сторінки.
+ * BTW - Анкети. Клієнтська логіка захищеної сторінки.
  *
  * Файл є ES-модулем. Чисті функції експортуються для тестування.
- * Підключення до DOM і fetch — тільки в init() внизу файлу.
+ * Підключення до DOM і fetch - тільки в init() внизу файлу.
  */
 
 // ─── Pure helpers ──────────────────────────────────────────────────────────
 
 /**
  * Форматує дату у локалізований рядок uk-UA.
- * Для null / undefined / некоректних значень повертає «—».
+ * Для null / undefined / некоректних значень повертає «-».
  * @param {string | Date | null | undefined} value
  * @returns {string}
  */
 export function formatDate(value) {
-  if (value == null || value === "") return "—";
+  if (value == null || value === "") return "-";
   const date = value instanceof Date ? value : new Date(value);
-  if (isNaN(date.getTime())) return "—";
+  if (isNaN(date.getTime())) return "-";
   return new Intl.DateTimeFormat("uk-UA", {
     day: "2-digit",
     month: "2-digit",
@@ -52,22 +52,85 @@ export function formatTrainingCount(trainingIds) {
 }
 
 /**
- * Розбирає рядок `trainingDisplay` формату «дата | час | спікер | назва».
- * Перші 3 частини витягуються окремо, решта об'єднується як назва
+ * Розбирає рядок `trainingDisplay` форматів «дата | час | спікер | назва»
+ * або «дата | спікер | назва». Решта частин об'єднується як назва
  * (щоб уникнути обрізання назв, що містять «|»).
  * @param {string} label
  * @returns {{ date: string; time: string; speaker: string; title: string }}
  */
 export function parseTrainingLabel(label) {
   const parts = label.split("|");
+  const hasTime = parts.length >= 4;
   const date = (parts[0] ?? "").trim();
-  const time = (parts[1] ?? "").trim();
-  const speaker = (parts[2] ?? "").trim();
+  const time = hasTime ? (parts[1] ?? "").trim() : "";
+  const speaker = (parts[hasTime ? 2 : 1] ?? "").trim();
   const title = parts
-    .slice(3)
+    .slice(hasTime ? 3 : 2)
     .map((p) => p.trim())
     .join(" | ");
   return { date, time, speaker, title };
+}
+
+/**
+ * Форматує ціле число для статистичних показників.
+ * @param {number | string | null | undefined} value
+ * @returns {string}
+ */
+export function formatStatisticNumber(value) {
+  const number = Number(value ?? 0);
+  return new Intl.NumberFormat("uk-UA").format(Number.isFinite(number) ? number : 0);
+}
+
+/**
+ * Створює один рядок горизонтальної діаграми статистики.
+ * @param {{ label: string; speaker?: string; count: number; percentage?: number }} item
+ * @param {number} maxCount
+ * @returns {HTMLElement}
+ */
+export function createStatisticsRow(item, maxCount) {
+  const row = document.createElement("div");
+  row.className = "stats-row";
+
+  const top = document.createElement("div");
+  top.className = "stats-row__top";
+
+  const label = document.createElement("div");
+  label.className = "stats-row__label";
+  label.textContent = item.label ?? "Не вказано";
+  if (item.speaker) {
+    const speaker = document.createElement("span");
+    speaker.className = "stats-row__speaker";
+    speaker.textContent = item.speaker;
+    label.append(speaker);
+  }
+
+  const value = document.createElement("span");
+  value.className = "stats-row__value";
+  const percentage = Number(item.percentage ?? 0);
+  const formattedPercentage = new Intl.NumberFormat("uk-UA", {
+    maximumFractionDigits: 1,
+  }).format(Number.isFinite(percentage) ? percentage : 0);
+  value.textContent = `${formatStatisticNumber(item.count)} (${formattedPercentage}%)`;
+
+  top.append(label, value);
+
+  const track = document.createElement("div");
+  track.className = "stats-row__track";
+  track.setAttribute("role", "progressbar");
+  track.setAttribute("aria-valuemin", "0");
+  track.setAttribute("aria-valuemax", String(Math.max(0, maxCount)));
+  track.setAttribute("aria-valuenow", String(Math.max(0, Number(item.count) || 0)));
+  track.setAttribute("aria-label", item.label ?? "Статистика");
+
+  const fill = document.createElement("div");
+  fill.className = "stats-row__fill";
+  const count = Math.max(0, Number(item.count) || 0);
+  const width = maxCount > 0 ? Math.min(100, (count / maxCount) * 100) : 0;
+  fill.style.width = `${width}%`;
+  track.append(fill);
+
+  row.append(top, track);
+  return row;
 }
 
 /**
@@ -85,8 +148,8 @@ function setText(parent, selector, text) {
 
 /**
  * Створює рядок таблиці для однієї анкети.
- * @param {object} user  — об'єкт анкети з API
- * @param {() => void} onOpen  — callback натискання «Відкрити»
+ * @param {object} user  - об'єкт анкети з API
+ * @param {() => void} onOpen  - callback натискання «Відкрити»
  * @returns {HTMLTableRowElement}
  */
 export function createUserRow(user, onOpen) {
@@ -96,10 +159,10 @@ export function createUserRow(user, onOpen) {
   const tdParticipant = document.createElement("td");
   const nameEl = document.createElement("div");
   nameEl.className = "cell-primary";
-  nameEl.textContent = user.name ?? "—";
+  nameEl.textContent = user.name ?? "-";
   const idEl = document.createElement("div");
   idEl.className = "cell-secondary";
-  idEl.textContent = `ID: ${user.id ?? "—"}`;
+  idEl.textContent = `ID: ${user.id ?? "-"}`;
   tdParticipant.append(nameEl, idEl);
   tr.append(tdParticipant);
 
@@ -108,10 +171,10 @@ export function createUserRow(user, onOpen) {
   tdContacts.className = "cell-two-line";
   const phoneEl = document.createElement("div");
   phoneEl.className = "cell-primary";
-  phoneEl.textContent = user.phoneNumber ?? "—";
+  phoneEl.textContent = user.phoneNumber ?? "-";
   const tgEl = document.createElement("div");
   tgEl.className = "cell-secondary";
-  tgEl.textContent = user.telegramUsername ? `@${user.telegramUsername}` : "—";
+  tgEl.textContent = user.telegramUsername ? `@${user.telegramUsername}` : "-";
   tdContacts.append(phoneEl, tgEl);
   tr.append(tdContacts);
 
@@ -120,14 +183,14 @@ export function createUserRow(user, onOpen) {
   tdEducation.className = "cell-two-line";
   const instEl = document.createElement("div");
   instEl.className = "cell-primary";
-  instEl.textContent = user.institution ?? "—";
+  instEl.textContent = user.institution ?? "-";
   const courseEl = document.createElement("div");
   courseEl.className = "cell-secondary";
-  courseEl.textContent = user.course ? `${user.course} курс` : "—";
+  courseEl.textContent = user.course ? `${user.course} курс` : "-";
   tdEducation.append(instEl, courseEl);
   tr.append(tdEducation);
 
-  // Тренінги — кількість
+  // Тренінги - кількість
   const tdTrainings = document.createElement("td");
   const count = Array.isArray(user.trainingIds) ? user.trainingIds.length : 0;
   if (count > 0) {
@@ -138,7 +201,7 @@ export function createUserRow(user, onOpen) {
   } else {
     const none = document.createElement("span");
     none.className = "training-none";
-    none.textContent = "—";
+    none.textContent = "-";
     tdTrainings.append(none);
   }
   tr.append(tdTrainings);
@@ -147,7 +210,7 @@ export function createUserRow(user, onOpen) {
   const tdSource = document.createElement("td");
   const sourceEl = document.createElement("div");
   sourceEl.className = "cell-primary";
-  sourceEl.textContent = user.discoverySource ?? "—";
+  sourceEl.textContent = user.discoverySource ?? "-";
   tdSource.append(sourceEl);
   tr.append(tdSource);
 
@@ -193,10 +256,10 @@ export function createUserCard(user, onOpen) {
   const nameWrap = document.createElement("div");
   const nameEl = document.createElement("div");
   nameEl.className = "user-card__name";
-  nameEl.textContent = user.name ?? "—";
+  nameEl.textContent = user.name ?? "-";
   const idEl = document.createElement("div");
   idEl.className = "user-card__id";
-  idEl.textContent = `ID: ${user.id ?? "—"}`;
+  idEl.textContent = `ID: ${user.id ?? "-"}`;
   nameWrap.append(nameEl, idEl);
 
   const openBtn = document.createElement("button");
@@ -216,12 +279,12 @@ export function createUserCard(user, onOpen) {
   rows.className = "user-card__rows";
 
   const cardRows = [
-    ["Телефон", user.phoneNumber ?? "—"],
-    ["Telegram", user.telegramUsername ? `@${user.telegramUsername}` : "—"],
-    ["Заклад", user.institution ?? "—"],
-    ["Курс", user.course ? `${user.course} курс` : "—"],
-    ["Тренінги", formatTrainingCount(user.trainingIds) || "—"],
-    ["Джерело", user.discoverySource ?? "—"],
+    ["Телефон", user.phoneNumber ?? "-"],
+    ["Telegram", user.telegramUsername ? `@${user.telegramUsername}` : "-"],
+    ["Заклад", user.institution ?? "-"],
+    ["Курс", user.course ? `${user.course} курс` : "-"],
+    ["Тренінги", formatTrainingCount(user.trainingIds) || "-"],
+    ["Джерело", user.discoverySource ?? "-"],
   ];
 
   for (const [label, value] of cardRows) {
@@ -239,6 +302,55 @@ export function createUserCard(user, onOpen) {
 
   card.append(header, rows);
   return card;
+}
+
+const REGISTRATION_STEP_LABELS = {
+  name: "ПІБ",
+  phone: "Телефон",
+  institution: "Навчальний заклад",
+  institutionOther: "Інший навчальний заклад",
+  course: "Курс",
+  courseOther: "Інший курс",
+  trainings: "Тренінги",
+  source: "Джерело інформації",
+  sourceOther: "Інше джерело",
+  personalConsent: "Згода на персональні дані",
+  rulesConsent: "Згода з правилами",
+};
+
+/**
+ * Створює рядок таблиці незавершених реєстрацій.
+ * @param {object} registration
+ * @returns {HTMLTableRowElement}
+ */
+export function createIncompleteRegistrationRow(registration) {
+  const tr = document.createElement("tr");
+
+  const tdUser = document.createElement("td");
+  const username = document.createElement("div");
+  username.className = "cell-primary";
+  username.textContent = registration.telegramUsername
+    ? `@${registration.telegramUsername}`
+    : "Без username";
+  const id = document.createElement("div");
+  id.className = "cell-secondary";
+  id.textContent = `ID: ${registration.telegramUserId ?? "-"}`;
+  tdUser.append(username, id);
+  tr.append(tdUser);
+
+  const tdStep = document.createElement("td");
+  tdStep.textContent = REGISTRATION_STEP_LABELS[registration.step] ?? registration.step ?? "-";
+  tr.append(tdStep);
+
+  const tdUpdated = document.createElement("td");
+  tdUpdated.textContent = formatDate(registration.updatedAt);
+  tr.append(tdUpdated);
+
+  const tdExpires = document.createElement("td");
+  tdExpires.textContent = formatDate(registration.expiresAt);
+  tr.append(tdExpires);
+
+  return tr;
 }
 
 /**
@@ -269,7 +381,7 @@ export function createDetailSection(title, fields) {
 
     const valueEl = document.createElement("span");
     valueEl.className = "detail-value";
-    valueEl.textContent = value || "—";
+    valueEl.textContent = value || "-";
 
     row.append(labelEl, valueEl);
     rows.append(row);
@@ -293,7 +405,7 @@ export function createConsentBadge(accepted, at) {
 
   const badge = document.createElement("span");
   badge.className = accepted ? "badge badge-success" : "badge badge-neutral";
-  // Не передаємо статус лише кольором — додаємо текст
+  // Не передаємо статус лише кольором - додаємо текст
   badge.textContent = accepted ? "✓ Прийнято" : "Не прийнято";
   badge.setAttribute("aria-label", accepted ? "Прийнято" : "Не прийнято");
   wrap.append(badge);
@@ -462,7 +574,7 @@ export function init() {
     search: "",
     /** @type {AbortController | null} */
     abortController: null,
-    /** @type {HTMLElement | null} — кнопка, що відкрила drawer */
+    /** @type {HTMLElement | null} - кнопка, що відкрила drawer */
     openerButton: null,
     activeTab: "users",
     notifPage: 1,
@@ -471,6 +583,10 @@ export function init() {
     notifAbortController: null,
     /** @type {HTMLElement | null} */
     notifOpenerButton: null,
+    /** @type {AbortController | null} */
+    statsAbortController: null,
+    /** @type {AbortController | null} */
+    incompleteAbortController: null,
   };
 
   // ── DOM refs ──────────────────────────────────────────────────────────
@@ -511,6 +627,31 @@ export function init() {
   const drawerBody = /** @type {HTMLElement} */ (document.getElementById("drawer-body"));
   const drawerClose = /** @type {HTMLButtonElement} */ (document.getElementById("drawer-close"));
   const logoutBtn = /** @type {HTMLButtonElement} */ (document.getElementById("logout"));
+
+  const statsPanel = document.getElementById("stats-panel");
+  const statsLoading = document.getElementById("stats-loading");
+  const statsContent = document.getElementById("stats-content");
+  const statsError = document.getElementById("stats-error");
+  const statsRefresh = document.getElementById("stats-refresh");
+  const statsRetry = document.getElementById("stats-retry");
+  const statsTotalUsers = document.getElementById("stats-total-users");
+  const statsUsersWithTraining = document.getElementById("stats-users-with-training");
+  const statsTrainingShare = document.getElementById("stats-training-share");
+  const statsTrainingSelections = document.getElementById("stats-training-selections");
+  const statsAverageTrainings = document.getElementById("stats-average-trainings");
+  const statsUsersWithoutTraining = document.getElementById("stats-users-without-training");
+  const statsTrainings = document.getElementById("stats-trainings");
+  const statsSources = document.getElementById("stats-sources");
+  const statsInstitutions = document.getElementById("stats-institutions");
+  const statsCourses = document.getElementById("stats-courses");
+
+  const incompletePanel = document.getElementById("incomplete-panel");
+  const incompleteRefresh = document.getElementById("incomplete-refresh");
+  const incompleteLoading = document.getElementById("incomplete-loading");
+  const incompleteContent = document.getElementById("incomplete-content");
+  const incompleteBody = document.getElementById("incomplete-body");
+  const incompleteEmpty = document.getElementById("incomplete-empty");
+  const incompleteError = document.getElementById("incomplete-error");
 
   // ── Drawer management ─────────────────────────────────────────────────
 
@@ -653,7 +794,7 @@ export function init() {
     // Pagination meta
     const from = (pagination.page - 1) * pagination.pageSize + 1;
     const to = Math.min(pagination.page * pagination.pageSize, pagination.total);
-    const metaText = `Показано ${from}–${to} із ${pagination.total}`;
+    const metaText = `Показано ${from}-${to} із ${pagination.total}`;
     paginationMeta.textContent = metaText;
     mobilePaginationMeta.textContent = metaText;
 
@@ -710,10 +851,65 @@ export function init() {
       render(result.users, result.pagination);
     } catch (error) {
       if (error instanceof Error && error.name === "AbortError") {
-        // Запит скасовано — нічого не робимо
+        // Запит скасовано - нічого не робимо
         return;
       }
       setErrorState();
+    }
+  }
+
+  function setIncompleteLoading() {
+    if (incompleteLoading) incompleteLoading.hidden = false;
+    if (incompleteContent) incompleteContent.hidden = true;
+    if (incompleteEmpty) incompleteEmpty.hidden = true;
+    if (incompleteError) incompleteError.hidden = true;
+    if (incompleteRefresh) incompleteRefresh.disabled = true;
+  }
+
+  function renderIncompleteRegistrations(registrations) {
+    if (!incompleteBody) return;
+    incompleteBody.replaceChildren();
+    for (const registration of registrations) {
+      incompleteBody.append(createIncompleteRegistrationRow(registration));
+    }
+    if (incompleteLoading) incompleteLoading.hidden = true;
+    if (incompleteError) incompleteError.hidden = true;
+    if (incompleteRefresh) incompleteRefresh.disabled = false;
+    if (incompleteContent) incompleteContent.hidden = registrations.length === 0;
+    if (incompleteEmpty) incompleteEmpty.hidden = registrations.length !== 0;
+  }
+
+  function setIncompleteError() {
+    if (incompleteLoading) incompleteLoading.hidden = true;
+    if (incompleteContent) incompleteContent.hidden = true;
+    if (incompleteEmpty) incompleteEmpty.hidden = true;
+    if (incompleteError) incompleteError.hidden = false;
+    if (incompleteRefresh) incompleteRefresh.disabled = false;
+  }
+
+  async function loadIncompleteRegistrations() {
+    if (!incompletePanel) return;
+    if (state.incompleteAbortController) state.incompleteAbortController.abort();
+    state.incompleteAbortController = new AbortController();
+    setIncompleteLoading();
+
+    try {
+      const response = await fetch("/api/incomplete-registrations", {
+        credentials: "same-origin",
+        signal: state.incompleteAbortController.signal,
+      });
+      if (response.status === 401) {
+        window.location.assign("/login");
+        return;
+      }
+      if (!response.ok) throw new Error("request");
+      const result = await response.json();
+      renderIncompleteRegistrations(
+        Array.isArray(result.registrations) ? result.registrations : [],
+      );
+    } catch (error) {
+      if (error instanceof Error && error.name === "AbortError") return;
+      setIncompleteError();
     }
   }
 
@@ -788,29 +984,436 @@ export function init() {
   // ── Tab switching ──────────────────────────────────────────────────────
 
   const tabUsers = document.getElementById("tab-users");
+  const tabStatistics = document.getElementById("tab-statistics");
+  const tabSpeakers = document.getElementById("tab-speakers");
   const tabNotifications = document.getElementById("tab-notifications");
+  const tabIncomplete = document.getElementById("tab-incomplete");
   const usersPanel = document.getElementById("users-panel");
+  const statisticsPanel = document.getElementById("stats-panel");
+  const speakerPanel = document.getElementById("speaker-panel");
   const notifPanel = document.getElementById("notif-panel");
+
+  // ── Speakers ───────────────────────────────────────────────────────────
+
+  const speakerBody = document.getElementById("speaker-body");
+  const speakerTableScroll = document.getElementById("speaker-table-scroll");
+  const speakerEmpty = document.getElementById("speaker-empty");
+  const createSpeakerBtn = document.getElementById("create-speaker-btn");
+  const speakerOverlay = document.getElementById("speaker-overlay");
+  const speakerClose = document.getElementById("speaker-close");
+  const speakerCancel = document.getElementById("speaker-cancel");
+  const speakerSubmit = document.getElementById("speaker-submit");
+  const speakerModalTitle = document.getElementById("speaker-modal-title");
+  const speakerTraining = document.getElementById("speaker-training");
+  const speakerPhoto = document.getElementById("speaker-photo");
+  const speakerPhotoAssets = document.getElementById("speaker-photo-assets");
+  const speakerName = document.getElementById("speaker-name");
+  const speakerDescription = document.getElementById("speaker-description");
+  const speakerDetailedDescription = document.getElementById("speaker-detailed-description");
+  const speakerOrder = document.getElementById("speaker-order");
+  const speakerActive = document.getElementById("speaker-active");
+  const speakerError = document.getElementById("speaker-error");
+  let editingSpeakerId = null;
+  let speakerTrainings = [];
+
+  function renderStatisticsList(container, items) {
+    if (!container) return;
+    container.replaceChildren();
+    if (!Array.isArray(items) || items.length === 0) {
+      const empty = document.createElement("p");
+      empty.className = "stats-empty";
+      empty.textContent = "Даних поки немає";
+      container.append(empty);
+      return;
+    }
+    const maxCount = Math.max(...items.map((item) => Number(item.count) || 0), 0);
+    for (const item of items) container.append(createStatisticsRow(item, maxCount));
+  }
+
+  function renderStatistics(data) {
+    const summary = data?.summary ?? {};
+    const totalUsers = Number(summary.totalUsers) || 0;
+    const usersWithTraining = Number(summary.usersWithTraining) || 0;
+    const usersWithoutTraining = Number(summary.usersWithoutTraining) || 0;
+    const trainingShare = totalUsers > 0 ? Math.round((usersWithTraining / totalUsers) * 100) : 0;
+    const averageTrainings = Number(summary.averageTrainingsPerUser) || 0;
+
+    if (statsTotalUsers) statsTotalUsers.textContent = formatStatisticNumber(totalUsers);
+    if (statsUsersWithTraining)
+      statsUsersWithTraining.textContent = formatStatisticNumber(usersWithTraining);
+    if (statsTrainingShare) statsTrainingShare.textContent = `${trainingShare}% від усіх учасників`;
+    if (statsTrainingSelections)
+      statsTrainingSelections.textContent = formatStatisticNumber(summary.totalTrainingSelections);
+    if (statsAverageTrainings) {
+      statsAverageTrainings.textContent = `у середньому ${new Intl.NumberFormat("uk-UA", {
+        maximumFractionDigits: 1,
+      }).format(averageTrainings)} на учасника`;
+    }
+    if (statsUsersWithoutTraining)
+      statsUsersWithoutTraining.textContent = formatStatisticNumber(usersWithoutTraining);
+
+    renderStatisticsList(statsTrainings, data?.trainingSelections);
+    renderStatisticsList(statsSources, data?.discoverySources);
+    renderStatisticsList(statsInstitutions, data?.institutions);
+    renderStatisticsList(statsCourses, data?.courses);
+
+    if (statsLoading) statsLoading.hidden = true;
+    if (statsError) statsError.hidden = true;
+    if (statsContent) statsContent.hidden = false;
+    if (statsRefresh) statsRefresh.disabled = false;
+  }
+
+  function setStatisticsLoading() {
+    if (statsLoading) statsLoading.hidden = false;
+    if (statsContent) statsContent.hidden = true;
+    if (statsError) statsError.hidden = true;
+    if (statsRefresh) statsRefresh.disabled = true;
+  }
+
+  function setStatisticsError() {
+    if (statsLoading) statsLoading.hidden = true;
+    if (statsContent) statsContent.hidden = true;
+    if (statsError) statsError.hidden = false;
+    if (statsRefresh) statsRefresh.disabled = false;
+  }
+
+  async function loadStatistics() {
+    if (!statsPanel) return;
+    if (state.statsAbortController) state.statsAbortController.abort();
+    state.statsAbortController = new AbortController();
+    setStatisticsLoading();
+
+    try {
+      const response = await fetch("/api/statistics", {
+        credentials: "same-origin",
+        signal: state.statsAbortController.signal,
+      });
+      if (response.status === 401) {
+        window.location.assign("/login");
+        return;
+      }
+      if (!response.ok) throw new Error("request");
+      renderStatistics(await response.json());
+    } catch (error) {
+      if (error instanceof Error && error.name === "AbortError") return;
+      setStatisticsError();
+    }
+  }
+
+  function trainingTitle(trainingId) {
+    const training = speakerTrainings.find((item) => item.id === trainingId);
+    return training?.title ?? trainingId;
+  }
+
+  function createSpeakerRow(speaker) {
+    const tr = document.createElement("tr");
+    const trainingCell = document.createElement("td");
+    trainingCell.textContent = trainingTitle(speaker.trainingId);
+    tr.append(trainingCell);
+
+    const speakerCell = document.createElement("td");
+    const name = document.createElement("div");
+    name.className = "cell-primary";
+    name.textContent = speaker.name;
+    const photo = document.createElement("div");
+    photo.className = "cell-secondary speaker-photo-id";
+    photo.textContent = speaker.photoFileId ? "Фото додано" : "Без фото";
+    speakerCell.append(name, photo);
+    const assetMatch = /^asset:([a-z0-9-]+)$/.exec(speaker.photoFileId ?? "");
+    if (assetMatch?.[1]) {
+      const preview = document.createElement("img");
+      preview.className = "speaker-photo-preview";
+      preview.src = `/speaker-assets/${encodeURIComponent(assetMatch[1])}`;
+      preview.alt = `Фото спікера ${speaker.name}`;
+      speakerCell.append(preview);
+    }
+    tr.append(speakerCell);
+
+    const orderCell = document.createElement("td");
+    orderCell.textContent = String(speaker.sortOrder);
+    tr.append(orderCell);
+
+    const statusCell = document.createElement("td");
+    statusCell.append(createStatusBadge(speaker.isActive ? "active" : "inactive"));
+    statusCell.querySelector(".status-badge").textContent = speaker.isActive
+      ? "Активний"
+      : "Прихований";
+    tr.append(statusCell);
+
+    const actions = document.createElement("td");
+    const edit = document.createElement("button");
+    edit.className = "btn btn-open btn-sm";
+    edit.type = "button";
+    edit.textContent = "Редагувати";
+    edit.addEventListener("click", () => openSpeakerModal(speaker));
+    const toggle = document.createElement("button");
+    toggle.className = "btn btn-secondary btn-sm";
+    toggle.type = "button";
+    toggle.textContent = speaker.isActive ? "Приховати" : "Увімкнути";
+    toggle.addEventListener("click", () => void toggleSpeaker(speaker));
+    const remove = document.createElement("button");
+    remove.className = "btn btn-secondary btn-sm";
+    remove.type = "button";
+    remove.textContent = "Видалити";
+    remove.addEventListener("click", () => void deleteSpeaker(speaker));
+    actions.append(edit, toggle, remove);
+    tr.append(actions);
+    return tr;
+  }
+
+  function renderSpeakers(speakers) {
+    if (!speakerBody || !speakerTableScroll || !speakerEmpty) return;
+    speakerBody.replaceChildren();
+    if (!Array.isArray(speakers) || speakers.length === 0) {
+      speakerTableScroll.hidden = true;
+      speakerEmpty.hidden = false;
+      return;
+    }
+    speakerEmpty.hidden = true;
+    speakerTableScroll.hidden = false;
+    for (const speaker of speakers) speakerBody.append(createSpeakerRow(speaker));
+  }
+
+  async function loadSpeakerTrainings() {
+    const response = await fetch("/api/trainings", { credentials: "same-origin" });
+    if (!response.ok) throw new Error("trainings");
+    const data = await response.json();
+    speakerTrainings = Array.isArray(data.trainings) ? data.trainings : [];
+    if (speakerTraining) {
+      while (speakerTraining.options.length > 1) speakerTraining.remove(1);
+      for (const training of speakerTrainings) {
+        const option = document.createElement("option");
+        option.value = training.id;
+        option.textContent = training.label;
+        speakerTraining.append(option);
+      }
+    }
+  }
+
+  async function loadSpeakerAssets() {
+    const response = await fetch("/api/speaker-assets", { credentials: "same-origin" });
+    if (!response.ok) throw new Error("speaker-assets");
+    const data = await response.json();
+    if (!speakerPhotoAssets) return;
+    speakerPhotoAssets.replaceChildren();
+    for (const asset of Array.isArray(data.assets) ? data.assets : []) {
+      const option = document.createElement("option");
+      option.value = `asset:${asset.id}`;
+      option.label = asset.name;
+      speakerPhotoAssets.append(option);
+    }
+  }
+
+  async function loadSpeakers() {
+    try {
+      const response = await fetch("/api/speakers", { credentials: "same-origin" });
+      if (response.status === 401) {
+        window.location.assign("/login");
+        return;
+      }
+      if (!response.ok) throw new Error("speakers");
+      const data = await response.json();
+      renderSpeakers(data.speakers);
+    } catch {
+      renderSpeakers([]);
+    }
+  }
+
+  function openSpeakerModal(speaker = null) {
+    editingSpeakerId = speaker?.id ?? null;
+    if (speakerModalTitle)
+      speakerModalTitle.textContent = speaker ? "Редагувати спікера" : "Новий спікер";
+    if (speakerTraining) speakerTraining.value = speaker?.trainingId ?? "";
+    if (speakerPhoto) speakerPhoto.value = speaker?.photoFileId ?? "";
+    if (speakerName) speakerName.value = speaker?.name ?? "";
+    if (speakerDescription) speakerDescription.value = speaker?.description ?? "";
+    if (speakerDetailedDescription)
+      speakerDetailedDescription.value = speaker?.detailedDescription ?? "";
+    if (speakerOrder) speakerOrder.value = String(speaker?.sortOrder ?? 0);
+    if (speakerActive) speakerActive.checked = speaker?.isActive ?? true;
+    if (speakerError) speakerError.hidden = true;
+    if (speakerOverlay) speakerOverlay.classList.add("is-visible");
+  }
+
+  function closeSpeakerModal() {
+    editingSpeakerId = null;
+    if (speakerOverlay) speakerOverlay.classList.remove("is-visible");
+  }
+
+  async function saveSpeaker() {
+    if (speakerError) speakerError.hidden = true;
+    const body = {
+      trainingId: speakerTraining?.value ?? "",
+      photoFileId: speakerPhoto?.value?.trim() ?? "",
+      name: speakerName?.value?.trim() ?? "",
+      description: speakerDescription?.value?.trim() ?? "",
+      detailedDescription: speakerDetailedDescription?.value?.trim() ?? "",
+      sortOrder: Number(speakerOrder?.value ?? ""),
+      isActive: speakerActive?.checked ?? false,
+    };
+    if (
+      !body.trainingId ||
+      !body.name ||
+      !body.description ||
+      !body.detailedDescription ||
+      !Number.isInteger(body.sortOrder) ||
+      (body.isActive && !body.photoFileId)
+    ) {
+      if (speakerError) {
+        speakerError.textContent =
+          "Заповніть усі обов’язкові поля та вкажіть фото для активного спікера";
+        speakerError.hidden = false;
+      }
+      return;
+    }
+    if (speakerSubmit) speakerSubmit.disabled = true;
+    try {
+      const response = await fetch(
+        editingSpeakerId ? `/api/speakers/${editingSpeakerId}` : "/api/speakers",
+        {
+          method: editingSpeakerId ? "PATCH" : "POST",
+          credentials: "same-origin",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(body),
+        },
+      );
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error ?? "Не вдалося зберегти спікера");
+      closeSpeakerModal();
+      await loadSpeakers();
+    } catch (error) {
+      if (speakerError) {
+        speakerError.textContent =
+          error instanceof Error ? error.message : "Не вдалося зберегти спікера";
+        speakerError.hidden = false;
+      }
+    } finally {
+      if (speakerSubmit) speakerSubmit.disabled = false;
+    }
+  }
+
+  async function toggleSpeaker(speaker) {
+    try {
+      await fetch(`/api/speakers/${speaker.id}`, {
+        method: "PATCH",
+        credentials: "same-origin",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ isActive: !speaker.isActive }),
+      });
+      await loadSpeakers();
+    } catch {
+      // The next refresh will show the unchanged state.
+    }
+  }
+
+  async function deleteSpeaker(speaker) {
+    if (!window.confirm(`Видалити спікера «${speaker.name}»?`)) return;
+    try {
+      await fetch(`/api/speakers/${speaker.id}`, { method: "DELETE", credentials: "same-origin" });
+      await loadSpeakers();
+    } catch {
+      // The next refresh will show the unchanged state.
+    }
+  }
+
+  if (createSpeakerBtn) {
+    createSpeakerBtn.addEventListener("click", () => {
+      void loadSpeakerTrainings()
+        .then(() => loadSpeakerAssets())
+        .then(() => openSpeakerModal())
+        .catch(() => {
+          if (speakerError) {
+            speakerError.textContent = "Не вдалося завантажити список тренінгів";
+            speakerError.hidden = false;
+          }
+        });
+    });
+  }
+  if (speakerClose) speakerClose.addEventListener("click", closeSpeakerModal);
+  if (speakerCancel) speakerCancel.addEventListener("click", closeSpeakerModal);
+  if (speakerOverlay) {
+    speakerOverlay.addEventListener("click", (event) => {
+      if (event.target === speakerOverlay) closeSpeakerModal();
+    });
+  }
+  if (speakerSubmit) speakerSubmit.addEventListener("click", () => void saveSpeaker());
 
   function switchTab(tab) {
     state.activeTab = tab;
     if (tab === "users") {
       tabUsers.classList.add("is-active");
+      tabStatistics?.classList.remove("is-active");
+      tabSpeakers?.classList.remove("is-active");
       tabNotifications.classList.remove("is-active");
+      tabIncomplete?.classList.remove("is-active");
       if (usersPanel) usersPanel.style.display = "";
+      if (statisticsPanel) statisticsPanel.classList.remove("is-visible");
+      if (speakerPanel) speakerPanel.classList.remove("is-visible");
       if (notifPanel) notifPanel.classList.remove("is-visible");
+      if (incompletePanel) incompletePanel.classList.remove("is-visible");
+    } else if (tab === "statistics") {
+      tabUsers.classList.remove("is-active");
+      tabStatistics?.classList.add("is-active");
+      tabSpeakers?.classList.remove("is-active");
+      tabNotifications.classList.remove("is-active");
+      tabIncomplete?.classList.remove("is-active");
+      if (usersPanel) usersPanel.style.display = "none";
+      if (statisticsPanel) statisticsPanel.classList.add("is-visible");
+      if (speakerPanel) speakerPanel.classList.remove("is-visible");
+      if (notifPanel) notifPanel.classList.remove("is-visible");
+      if (incompletePanel) incompletePanel.classList.remove("is-visible");
+      void loadStatistics();
+    } else if (tab === "speakers") {
+      tabUsers.classList.remove("is-active");
+      tabStatistics?.classList.remove("is-active");
+      tabSpeakers?.classList.add("is-active");
+      tabNotifications.classList.remove("is-active");
+      tabIncomplete?.classList.remove("is-active");
+      if (usersPanel) usersPanel.style.display = "none";
+      if (statisticsPanel) statisticsPanel.classList.remove("is-visible");
+      if (speakerPanel) speakerPanel.classList.add("is-visible");
+      if (notifPanel) notifPanel.classList.remove("is-visible");
+      if (incompletePanel) incompletePanel.classList.remove("is-visible");
+      void loadSpeakerTrainings().catch(() => undefined);
+      void loadSpeakerAssets().catch(() => undefined);
+      void loadSpeakers();
+    } else if (tab === "incomplete") {
+      tabUsers.classList.remove("is-active");
+      tabStatistics?.classList.remove("is-active");
+      tabSpeakers?.classList.remove("is-active");
+      tabNotifications.classList.remove("is-active");
+      tabIncomplete?.classList.add("is-active");
+      if (usersPanel) usersPanel.style.display = "none";
+      if (statisticsPanel) statisticsPanel.classList.remove("is-visible");
+      if (speakerPanel) speakerPanel.classList.remove("is-visible");
+      if (notifPanel) notifPanel.classList.remove("is-visible");
+      if (incompletePanel) incompletePanel.classList.add("is-visible");
+      void loadIncompleteRegistrations();
     } else {
       tabUsers.classList.remove("is-active");
+      tabStatistics?.classList.remove("is-active");
+      tabSpeakers?.classList.remove("is-active");
       tabNotifications.classList.add("is-active");
+      tabIncomplete?.classList.remove("is-active");
       if (usersPanel) usersPanel.style.display = "none";
+      if (statisticsPanel) statisticsPanel.classList.remove("is-visible");
+      if (speakerPanel) speakerPanel.classList.remove("is-visible");
       if (notifPanel) notifPanel.classList.add("is-visible");
+      if (incompletePanel) incompletePanel.classList.remove("is-visible");
       void loadNotifications();
     }
   }
 
   if (tabUsers) tabUsers.addEventListener("click", () => switchTab("users"));
+  if (tabStatistics) tabStatistics.addEventListener("click", () => switchTab("statistics"));
+  if (tabSpeakers) tabSpeakers.addEventListener("click", () => switchTab("speakers"));
+  if (tabIncomplete) tabIncomplete.addEventListener("click", () => switchTab("incomplete"));
   if (tabNotifications)
     tabNotifications.addEventListener("click", () => switchTab("notifications"));
+
+  if (statsRefresh) statsRefresh.addEventListener("click", () => void loadStatistics());
+  if (statsRetry) statsRetry.addEventListener("click", () => void loadStatistics());
+  if (incompleteRefresh) incompleteRefresh.addEventListener("click", () => void loadIncompleteRegistrations());
 
   // ── Notifications ─────────────────────────────────────────────────────
 
@@ -899,7 +1502,7 @@ export function init() {
     const tdTitle = document.createElement("td");
     const titleEl = document.createElement("div");
     titleEl.className = "cell-primary";
-    titleEl.textContent = notif.title ?? "—";
+    titleEl.textContent = notif.title ?? "-";
     const msgEl = document.createElement("div");
     msgEl.className = "cell-secondary";
     const msgText = notif.message ?? "";
@@ -971,7 +1574,7 @@ export function init() {
         ["Аудиторія", TARGET_LABELS[notif.targetType] ?? notif.targetType],
         ["Заплановано", formatDate(notif.scheduledAt)],
         ["Надіслано", formatDate(notif.sentAt)],
-        ["Термін", notif.expiresAt ? formatDate(notif.expiresAt) : "—"],
+        ["Термін", notif.expiresAt ? formatDate(notif.expiresAt) : "-"],
       ]),
     );
 
@@ -1108,7 +1711,7 @@ export function init() {
       const from = (pagination.page - 1) * pagination.pageSize + 1;
       const to = Math.min(pagination.page * pagination.pageSize, pagination.total);
       if (notifPaginationMeta)
-        notifPaginationMeta.textContent = `Показано ${from}–${to} із ${pagination.total}`;
+        notifPaginationMeta.textContent = `Показано ${from}-${to} із ${pagination.total}`;
       if (notifPrevBtn) notifPrevBtn.disabled = pagination.page <= 1;
       if (notifNextBtn) notifNextBtn.disabled = pagination.page >= pagination.totalPages;
       if (notifPagination) notifPagination.hidden = false;

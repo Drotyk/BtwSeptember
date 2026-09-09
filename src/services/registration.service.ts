@@ -1,9 +1,20 @@
-import type { UserRepository } from "../repositories/users.repository.js";
+import type { UserRecord, UserRepository } from "../repositories/users.repository.js";
 import type { RegistrationState } from "../bot/types.js";
 
 export interface RegistrationConfig {
   privacyPolicyVersion: string;
   eventRulesVersion: string;
+}
+
+export function hasCurrentRulesAcceptance(
+  user: Pick<UserRecord, "eventRulesConsent" | "eventRulesConsentAt" | "eventRulesVersion"> | null,
+  currentVersion: string,
+): boolean {
+  return Boolean(
+    user?.eventRulesConsent &&
+    user.eventRulesConsentAt &&
+    user.eventRulesVersion === currentVersion,
+  );
 }
 
 export async function saveRegistration(
@@ -25,6 +36,15 @@ export async function saveRegistration(
     throw new Error("REGISTRATION_INCOMPLETE");
   }
 
+  if (state.rulesVersion !== config.eventRulesVersion || !state.rulesAcceptedAt) {
+    throw new Error("REGISTRATION_RULES_NOT_ACCEPTED");
+  }
+
+  const eventRulesConsentAt = new Date(state.rulesAcceptedAt);
+  if (Number.isNaN(eventRulesConsentAt.getTime())) {
+    throw new Error("REGISTRATION_RULES_NOT_ACCEPTED");
+  }
+
   await repository.save({
     telegramUserId,
     phoneNumber: state.phoneNumber,
@@ -38,6 +58,7 @@ export async function saveRegistration(
     consent: {
       personalDataPolicyVersion: config.privacyPolicyVersion,
       eventRulesVersion: config.eventRulesVersion,
+      eventRulesConsentAt,
     },
   });
 }

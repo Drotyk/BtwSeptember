@@ -101,7 +101,7 @@ export function createNotificationWorker(pool: Pool, sender: TelegramSender): No
       }
     }
 
-    // Фіналізація — визначити підсумковий статус
+    // Фіналізація - визначити підсумковий статус
     await repo.finalizeNotification(notificationId);
   }
 
@@ -154,7 +154,7 @@ export function createNotificationWorker(pool: Pool, sender: TelegramSender): No
         clearInterval(timer);
         timer = null;
       }
-      // Чекаємо завершення поточної обробки
+      // Чекармо завершення поточної обробки
       while (running) {
         await delay(100);
       }

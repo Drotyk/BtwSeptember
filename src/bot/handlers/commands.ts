@@ -4,13 +4,18 @@ import { TRAININGS, getTrainingLabel } from "../../form.js";
 import { privacyMessage } from "../messages.js";
 import {
   deleteConfirmationKeyboard,
+  EDIT_REGISTRATION_MENU_LABEL,
+  mainMenuKeyboard,
   registrationActionsKeyboard,
-  REMOVE_KEYBOARD,
+  REGISTRATION_MENU_LABEL,
+  RULES_MENU_LABEL,
 } from "../keyboards.js";
-import { goBack, startRegistration } from "./registration.js";
+import { goBack, resumeRegistration, startRegistration } from "./registration.js";
 import type { BotDependencies } from "../create-bot.js";
 import { clearSession, type BotContext } from "../types.js";
 import type { UserRecord } from "../../repositories/users.repository.js";
+import { sendRules } from "../rules.js";
+import { showFirstSpeaker, SPEAKERS_MENU_LABEL } from "../../services/telegram-speaker.service.js";
 
 function userDataMessage(user: UserRecord): string {
   return [
@@ -18,21 +23,74 @@ function userDataMessage(user: UserRecord): string {
     `ПІ: ${user.name}`,
     `Телефон: ${user.phoneNumber}`,
     `Telegram: ${user.telegramUsername ?? "не встановлено"}`,
-    `Заклад: ${user.institution ?? "—"}`,
-    `Курс: ${user.course ?? "—"}`,
+    `Заклад: ${user.institution ?? "-"}`,
+    `Курс: ${user.course ?? "-"}`,
     `Тренінги: ${
       (user.trainingIds ?? [])
         .map((id) => {
           const training = TRAININGS.find((candidate) => candidate.id === id);
           return training ? getTrainingLabel(training) : id;
         })
-        .join(", ") || "—"
+        .join(", ") || "-"
     }`,
-    `Джерело: ${user.discoverySource ?? "—"}`,
+    `Джерело: ${user.discoverySource ?? "-"}`,
   ].join("\n");
 }
 
 export function registerCommandHandlers(bot: Bot<BotContext>, dependencies: BotDependencies): void {
+  const showRules = async (ctx: BotContext): Promise<void> => {
+    try {
+      await sendRules(ctx, dependencies.rulesService, false, true);
+    } catch {
+      await ctx.reply("Не вдалося завантажити правила. Спробуйте пізніше.");
+    }
+  };
+
+  bot.hears(RULES_MENU_LABEL, async (ctx) => {
+    if (ctx.chat?.type !== "private") return;
+    await showRules(ctx);
+  });
+
+  bot.hears(REGISTRATION_MENU_LABEL, async (ctx) => {
+    if (ctx.chat?.type !== "private" || !ctx.from) return;
+    if (ctx.session.registration) {
+      await resumeRegistration(ctx, dependencies);
+      return;
+    }
+    if (await dependencies.users.exists(ctx.from.id)) {
+      await startRegistration(ctx, true);
+      return;
+    }
+    await startRegistration(ctx);
+  });
+
+  bot.hears(EDIT_REGISTRATION_MENU_LABEL, async (ctx) => {
+    if (ctx.chat?.type !== "private" || !ctx.from) return;
+    if (await dependencies.users.exists(ctx.from.id)) {
+      await startRegistration(ctx, true);
+      return;
+    }
+    await ctx.reply("Збереженої анкети не знайдено. Щоб почати реєстрацію, натисніть /start.");
+  });
+
+  bot.hears(SPEAKERS_MENU_LABEL, async (ctx) => {
+    if (ctx.chat?.type !== "private") return;
+    try {
+      await showFirstSpeaker(ctx, dependencies.speakers);
+    } catch {
+      await ctx.reply("Не вдалося завантажити список спікерів. Спробуйте пізніше.");
+    }
+  });
+
+  bot.command("speakers", async (ctx) => {
+    if (ctx.chat?.type !== "private") return;
+    try {
+      await showFirstSpeaker(ctx, dependencies.speakers);
+    } catch {
+      await ctx.reply("Не вдалося завантажити список спікерів. Спробуйте пізніше.");
+    }
+  });
+
   bot.command("start", async (ctx) => {
     if (ctx.chat?.type !== "private" || !ctx.from) return;
     if (await dependencies.users.exists(ctx.from.id)) {
@@ -41,6 +99,7 @@ export function registerCommandHandlers(bot: Bot<BotContext>, dependencies: BotD
         "Ви вже заповнювали анкету. Повторна реєстрація неможлива, але Ви можете відредагувати свої дані.",
         { reply_markup: registrationActionsKeyboard(dependencies.settings.chatInviteLink) },
       );
+      await ctx.reply("Головне меню:", { reply_markup: mainMenuKeyboard(true) });
       return;
     }
     await startRegistration(ctx);
@@ -49,8 +108,9 @@ export function registerCommandHandlers(bot: Bot<BotContext>, dependencies: BotD
   bot.command("cancel", async (ctx) => {
     if (ctx.chat?.type !== "private") return;
     clearSession(ctx);
+    const hasRegistration = Boolean(ctx.from && (await dependencies.users.exists(ctx.from.id)));
     await ctx.reply("Анкету скасовано. Щоб почати знову, натисніть /start.", {
-      reply_markup: REMOVE_KEYBOARD,
+      reply_markup: mainMenuKeyboard(hasRegistration),
     });
   });
 
@@ -81,13 +141,6 @@ export function registerCommandHandlers(bot: Bot<BotContext>, dependencies: BotD
 
   bot.command("rules", async (ctx) => {
     if (ctx.chat?.type !== "private") return;
-    try {
-      const chunks = await dependencies.getRulesChunks();
-      for (const chunk of chunks) {
-        await ctx.reply(chunk);
-      }
-    } catch {
-      await ctx.reply("Не вдалося завантажити правила. Спробуйте пізніше.");
-    }
+    await showRules(ctx);
   });
 }

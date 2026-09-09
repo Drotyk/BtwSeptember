@@ -22,10 +22,17 @@ export interface RegistrationState {
   course?: string;
   trainingIds?: string[];
   discoverySource?: string;
+  rulesAcceptedAt?: string;
+  rulesVersion?: string;
 }
 
 export interface SessionData {
+  telegramUsername?: string | null;
   registration?: RegistrationState;
+  rulesAcceptance?: {
+    acceptedAt: string;
+    version: string;
+  };
   pendingDeleteConfirmation?: boolean;
 }
 
