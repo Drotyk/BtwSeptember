@@ -1,6 +1,6 @@
 import { InputFile, InlineKeyboard } from "grammy";
 
-import { TRAININGS } from "../form.js";
+import { TRAININGS, getTraining } from "../form.js";
 import { getSpeakerAsset, speakerAssetId, speakerAssetPath } from "../speaker-assets.js";
 import type { SpeakerRecord, SpeakerRepository } from "../repositories/speakers.repository.js";
 import type { BotContext } from "../bot/types.js";
@@ -25,7 +25,10 @@ function captionDescription(value: string): string {
 }
 
 function caption(speaker: SpeakerRecord, index: number, total: number): string {
-  return `🎤 <b>${escapeHtml(speaker.name)}</b>\n\n${captionDescription(speaker.description)}\n\n${index + 1} / ${total}`;
+  const training = getTraining(speaker.trainingId);
+  const timeLabel = training?.time ? ` | ${training.time}` : "";
+  const dateLabel = training ? ` | ${training.date}${timeLabel}` : "";
+  return `🎤 <b>${escapeHtml(speaker.name)}</b>${dateLabel}\n\n${captionDescription(speaker.description)}\n\n${index + 1} / ${total}`;
 }
 
 function detailsCaption(speaker: SpeakerRecord): string {
@@ -80,7 +83,8 @@ export async function showSpeakerTrainingSelection(
 
   const keyboard = new InlineKeyboard();
   for (const training of trainings) {
-    keyboard.text(`${training.date} - ${training.title}`, `speakers:select:${training.id}`).row();
+    const timeLabel = training.time ? ` | ${training.time}` : "";
+    keyboard.text(`${training.date}${timeLabel} - ${training.title}`, `speakers:select:${training.id}`).row();
   }
   await ctx.reply("🎤 Спікери\n\nВиберіть тренінг:", { reply_markup: keyboard });
 }

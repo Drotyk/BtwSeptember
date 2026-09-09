@@ -18,9 +18,9 @@ export const DISCOVERY_SOURCES = [
 export const TRAININGS: readonly Training[] = [
   {
     id: "leadership",
-    title: "«Лідерство та командна робота: як об’єднувати людей і вести за собою»",
+    title: "«Лідерство та командна робота: як об'єднувати людей і вести за собою»",
     date: "14.09",
-    time: "",
+    time: "15:00",
     speaker: "Сергій Притула",
     active: true,
   },
@@ -28,7 +28,7 @@ export const TRAININGS: readonly Training[] = [
     id: "self-realization",
     title: "«Як реалізувати себе після навчання: знайти хорошу роботу чи створити власну справу?»",
     date: "15.09",
-    time: "",
+    time: "17:00",
     speaker: "Грабовський Олександр",
     active: true,
   },
@@ -36,7 +36,7 @@ export const TRAININGS: readonly Training[] = [
     id: "acting",
     title: "«Акторська майстерність на сцені та в житті»",
     date: "16.09",
-    time: "",
+    time: "17:00",
     speaker: "Костянтин Боровик",
     active: true,
   },
@@ -44,7 +44,7 @@ export const TRAININGS: readonly Training[] = [
     id: "first-job",
     title: "«Як знайти першу роботу: з чого почати, коли ще немає великого досвіду»",
     date: "17.09",
-    time: "",
+    time: "17:00",
     speaker: "Сергій Андрощук",
     active: true,
   },
@@ -61,5 +61,5 @@ export function getTrainingLabel(training: Training): string {
 }
 
 export function getTrainingDate(training: Training): string {
-  return training.date;
+  return training.time ? `${training.date} | ${training.time}` : training.date;
 }
