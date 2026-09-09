@@ -424,6 +424,10 @@ export function registerRegistrationHandlers(
         await ctx.reply("Введіть Ваш курс (до 50 символів).");
         return;
       }
+      if (ctx.session.registration?.institution === "ВТФК" && /маг[іi]ст(р|ер)/i.test(course)) {
+        await ctx.reply("У ВТФК немає магістратури. Введіть інший курс.");
+        return;
+      }
       setStep(ctx, "trainings", { course, trainingIds: [] });
       await ctx.reply("На які тренінги Ви плануєте прийти? Натискайте всі потрібні варіанти.", {
         reply_markup: trainingKeyboard(),
