@@ -309,7 +309,7 @@ export async function finishRegistration(
       reply_markup: registrationActionsKeyboard(dependencies.settings.chatInviteLink),
     },
   );
-  await ctx.reply("Головне меню:", { reply_markup: mainMenuKeyboard(true) });
+  await ctx.reply("Головне меню:", { reply_markup: mainMenuKeyboard(true, dependencies.settings.chatInviteLink) });
 }
 
 export function registerRegistrationHandlers(

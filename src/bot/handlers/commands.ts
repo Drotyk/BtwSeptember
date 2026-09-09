@@ -5,6 +5,8 @@ import { privacyMessage } from "../messages.js";
 import {
   deleteConfirmationKeyboard,
   EDIT_REGISTRATION_MENU_LABEL,
+  JOIN_CHAT_MENU_LABEL,
+  joinChatKeyboard,
   mainMenuKeyboard,
   registrationActionsKeyboard,
   REGISTRATION_MENU_LABEL,
@@ -82,6 +84,17 @@ export function registerCommandHandlers(bot: Bot<BotContext>, dependencies: BotD
     }
   });
 
+  bot.hears(JOIN_CHAT_MENU_LABEL, async (ctx) => {
+    if (ctx.chat?.type !== "private") return;
+    const { chatInviteLink } = dependencies.settings;
+    const keyboard = joinChatKeyboard(chatInviteLink);
+    if (keyboard) {
+      await ctx.reply("Посилання для входу в чат:", { reply_markup: keyboard });
+    } else {
+      await ctx.reply("Посилання на чат недоступне.");
+    }
+  });
+
   bot.command("speakers", async (ctx) => {
     if (ctx.chat?.type !== "private") return;
     try {
@@ -99,7 +112,7 @@ export function registerCommandHandlers(bot: Bot<BotContext>, dependencies: BotD
         "Ви вже заповнювали анкету. Повторна реєстрація неможлива, але Ви можете відредагувати свої дані.",
         { reply_markup: registrationActionsKeyboard(dependencies.settings.chatInviteLink) },
       );
-      await ctx.reply("Головне меню:", { reply_markup: mainMenuKeyboard(true) });
+      await ctx.reply("Головне меню:", { reply_markup: mainMenuKeyboard(true, dependencies.settings.chatInviteLink) });
       return;
     }
     await startRegistration(ctx);
@@ -110,7 +123,7 @@ export function registerCommandHandlers(bot: Bot<BotContext>, dependencies: BotD
     clearSession(ctx);
     const hasRegistration = Boolean(ctx.from && (await dependencies.users.exists(ctx.from.id)));
     await ctx.reply("Анкету скасовано. Щоб почати знову, натисніть /start.", {
-      reply_markup: mainMenuKeyboard(hasRegistration),
+      reply_markup: mainMenuKeyboard(hasRegistration, dependencies.settings.chatInviteLink),
     });
   });
 

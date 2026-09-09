@@ -11,6 +11,7 @@ export const NO_CONSENT = "Не погоджуюсь";
 export const RULES_MENU_LABEL = "📜 Правила BTW";
 export const EDIT_REGISTRATION_MENU_LABEL = "✏️ Редагувати анкету";
 export const REGISTRATION_MENU_LABEL = "📝 Реєстрація";
+export const JOIN_CHAT_MENU_LABEL = "💬 Приєднатися до чату";
 
 export function backKeyboard(): Keyboard {
   return new Keyboard().text(BACK).resized().oneTime();
@@ -76,10 +77,16 @@ export function consentKeyboard(): Keyboard {
     .oneTime();
 }
 
-export function mainMenuKeyboard(hasRegistration = false): Keyboard {
+export function mainMenuKeyboard(hasRegistration = false, chatInviteLink = ""): Keyboard {
   const keyboard = new Keyboard().text(RULES_MENU_LABEL).row().text(SPEAKERS_MENU_LABEL).row();
   keyboard.text(hasRegistration ? EDIT_REGISTRATION_MENU_LABEL : REGISTRATION_MENU_LABEL);
+  if (hasRegistration && chatInviteLink) keyboard.row().text(JOIN_CHAT_MENU_LABEL);
   return keyboard.resized();
+}
+
+export function joinChatKeyboard(chatInviteLink: string): InlineKeyboard | undefined {
+  if (!chatInviteLink) return undefined;
+  return new InlineKeyboard().url("💬 Приєднатися до чату", chatInviteLink);
 }
 
 export function rulesConsentKeyboard(): InlineKeyboard {
