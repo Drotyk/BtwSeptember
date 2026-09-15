@@ -16,25 +16,29 @@ describe("BTW training configuration", () => {
   });
 
   it("matches the supplied September schedule", () => {
-    expect(TRAININGS.map(({ date, speaker, title }) => ({ date, speaker, title }))).toEqual([
+    expect(TRAININGS.map(({ date, time, speaker, title }) => ({ date, time, speaker, title }))).toEqual([
       {
         date: "14.09",
+        time: "15:00",
         speaker: "Сергій Притула",
         title: "«Лідерство та командна робота: як об'єднувати людей і вести за собою»",
       },
       {
         date: "15.09",
+        time: "17:00",
         speaker: "Грабовський Олександр",
         title:
           "«Як реалізувати себе після навчання: знайти хорошу роботу чи створити власну справу?»",
       },
       {
         date: "16.09",
+        time: "16:00",
         speaker: "Костянтин Боровик",
         title: "«Акторська майстерність на сцені та в житті»",
       },
       {
         date: "17.09",
+        time: "17:00",
         speaker: "Сергій Андрощук",
         title: "«Як знайти першу роботу: з чого почати, коли ще немає великого досвіду»",
       },

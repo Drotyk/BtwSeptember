@@ -36,7 +36,7 @@ export const TRAININGS: readonly Training[] = [
     id: "acting",
     title: "«Акторська майстерність на сцені та в житті»",
     date: "16.09",
-    time: "17:00",
+    time: "16:00",
     speaker: "Костянтин Боровик",
     active: true,
   },
