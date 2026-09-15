@@ -78,7 +78,7 @@ async function main(): Promise<void> {
 
     notificationWorker = createNotificationWorker(pool, {
       sendMessage: async (chatId, text) => {
-        await bot.api.sendMessage(chatId, text);
+        await bot.api.sendMessage(chatId, text, { parse_mode: "HTML" });
       },
     });
     notificationWorker.start();

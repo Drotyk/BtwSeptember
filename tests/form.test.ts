@@ -8,7 +8,9 @@ describe("BTW training configuration", () => {
     expect(training).toBeDefined();
     expect(training.id).toBeTruthy();
     expect(getTraining(training.id)).toEqual(training);
-    expect(getTrainingDate(training)).toBe(training.date);
+    expect(getTrainingDate(training)).toBe(
+      training.time ? `${training.date} | ${training.time}` : training.date,
+    );
     expect(getTrainingLabel(training)).toContain(training.speaker);
     expect(getTraining("missing")).toBeUndefined();
   });
@@ -18,7 +20,7 @@ describe("BTW training configuration", () => {
       {
         date: "14.09",
         speaker: "Сергій Притула",
-        title: "«Лідерство та командна робота: як об’єднувати людей і вести за собою»",
+        title: "«Лідерство та командна робота: як об'єднувати людей і вести за собою»",
       },
       {
         date: "15.09",
@@ -37,6 +39,5 @@ describe("BTW training configuration", () => {
         title: "«Як знайти першу роботу: з чого почати, коли ще немає великого досвіду»",
       },
     ]);
-    expect(TRAININGS.every((training) => training.time === "")).toBe(true);
   });
 });

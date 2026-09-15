@@ -150,7 +150,7 @@ export function createNotificationsRepository(pool: Pool): NotificationsReposito
       const result = await pool.query<NotificationRecord>(
         `INSERT INTO notifications
            (title, message, training_id, target_type, target_user_ids, scheduled_at, expires_at)
-         VALUES ($1, $2, $3, $4, $5, $6, $7)
+         VALUES ($1, $2, $3, $4, $5::bigint[], $6, $7)
          RETURNING ${NOTIFICATION_COLUMNS}`,
         [
           input.title,

@@ -1878,6 +1878,9 @@ export function init() {
   if (notifTrainingSelect)
     notifTrainingSelect.addEventListener("change", () => void updatePreviewCount());
 
+  if (notifUserIdsInput)
+    notifUserIdsInput.addEventListener("input", () => void updatePreviewCount());
+
   if (notifSubmitBtn) {
     notifSubmitBtn.addEventListener("click", async () => {
       if (notifError) notifError.hidden = true;
