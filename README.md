@@ -190,7 +190,7 @@ Coverage thresholds для перевіреної критичної логік�
 
 ## Production deployment
 
-- використовуйте секретне сховище для `.env` і Argon2id-хешу;
+- використовуйте `.env` і Argon2id-хешу;
 - розмістіть HTTPS reverse proxy перед панеллю та залиште `SECURE_COOKIES=true`;
 - не публікуйте порт PostgreSQL і не відкривайте адмін-панель напряму в Інтернет;
 - обмежте доступ до адмін-панелі через VPN, firewall або reverse-proxy ACL;
