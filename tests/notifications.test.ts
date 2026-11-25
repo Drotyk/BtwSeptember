@@ -5,6 +5,7 @@ import {
   isInPast,
   validateNotificationInput,
 } from "../src/services/notification.service.js";
+import type { CreateNotificationInput } from "../src/services/notification.service.js";
 
 describe("notification.service", () => {
   describe("computeScheduledAt", () => {

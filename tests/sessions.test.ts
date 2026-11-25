@@ -9,10 +9,22 @@ import {
 
 describe("PostgreSQL session storage", () => {
   it("keys sessions by Telegram user only in private chats", () => {
-    expect(privateSessionKey({ chat: { type: "private", id: 1 }, from: { id: 42 } })).toBe(
-      "telegram:42",
-    );
-    expect(privateSessionKey({ chat: { type: "group", id: 1 }, from: { id: 42 } })).toBeUndefined();
+    expect(
+      privateSessionKey({
+        chat: { type: "private", id: 1, first_name: "Test" },
+        from: { id: 42, is_bot: false, first_name: "Test" },
+      }),
+    ).toBe("telegram:42");
+    expect(
+      privateSessionKey({
+        chat: { type: "group", id: 1, title: "Test group" },
+        from: {
+          id: 42,
+          is_bot: false,
+          first_name: "",
+        },
+      }),
+    ).toBeUndefined();
   });
 
   it("reads, writes, deletes and cleans expired sessions", async () => {

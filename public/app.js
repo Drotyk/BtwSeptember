@@ -133,17 +133,6 @@ export function createStatisticsRow(item, maxCount) {
   return row;
 }
 
-/**
- * Безпечно встановлює textContent дочірнього елемента.
- * @param {Element} parent
- * @param {string} selector
- * @param {string} text
- */
-function setText(parent, selector, text) {
-  const el = parent.querySelector(selector);
-  if (el) el.textContent = text;
-}
-
 // ─── DOM builders (return HTMLElement, never use innerHTML for user data) ───
 
 /**
@@ -846,7 +835,10 @@ export function init() {
         window.location.assign("/login");
         return;
       }
-      if (!response.ok) throw new Error("request");
+      if (!response.ok) {
+        setErrorState();
+        return;
+      }
       const result = await response.json();
       render(result.users, result.pagination);
     } catch (error) {
@@ -902,7 +894,10 @@ export function init() {
         window.location.assign("/login");
         return;
       }
-      if (!response.ok) throw new Error("request");
+      if (!response.ok) {
+        setIncompleteError();
+        return;
+      }
       const result = await response.json();
       renderIncompleteRegistrations(
         Array.isArray(result.registrations) ? result.registrations : [],
@@ -1092,7 +1087,10 @@ export function init() {
         window.location.assign("/login");
         return;
       }
-      if (!response.ok) throw new Error("request");
+      if (!response.ok) {
+        setStatisticsError();
+        return;
+      }
       renderStatistics(await response.json());
     } catch (error) {
       if (error instanceof Error && error.name === "AbortError") return;
@@ -1211,7 +1209,10 @@ export function init() {
         window.location.assign("/login");
         return;
       }
-      if (!response.ok) throw new Error("speakers");
+      if (!response.ok) {
+        renderSpeakers([]);
+        return;
+      }
       const data = await response.json();
       renderSpeakers(data.speakers);
     } catch {
@@ -1278,7 +1279,13 @@ export function init() {
         },
       );
       const data = await response.json();
-      if (!response.ok) throw new Error(data.error ?? "Не вдалося зберегти спікера");
+      if (!response.ok) {
+        if (speakerError) {
+          speakerError.textContent = data.error ?? "Не вдалося зберегти спікера";
+          speakerError.hidden = false;
+        }
+        return;
+      }
       closeSpeakerModal();
       await loadSpeakers();
     } catch (error) {
@@ -1413,7 +1420,8 @@ export function init() {
 
   if (statsRefresh) statsRefresh.addEventListener("click", () => void loadStatistics());
   if (statsRetry) statsRetry.addEventListener("click", () => void loadStatistics());
-  if (incompleteRefresh) incompleteRefresh.addEventListener("click", () => void loadIncompleteRegistrations());
+  if (incompleteRefresh)
+    incompleteRefresh.addEventListener("click", () => void loadIncompleteRegistrations());
 
   // ── Notifications ─────────────────────────────────────────────────────
 
@@ -1742,7 +1750,10 @@ export function init() {
         window.location.assign("/login");
         return;
       }
-      if (!response.ok) throw new Error("request");
+      if (!response.ok) {
+        if (notifSkeleton) notifSkeleton.hidden = true;
+        return;
+      }
       const result = await response.json();
       renderNotifications(result.notifications, result.pagination);
     } catch (error) {

@@ -84,7 +84,9 @@ export async function showSpeakerTrainingSelection(
   const keyboard = new InlineKeyboard();
   for (const training of trainings) {
     const timeLabel = training.time ? ` | ${training.time}` : "";
-    keyboard.text(`${training.date}${timeLabel} - ${training.title}`, `speakers:select:${training.id}`).row();
+    keyboard
+      .text(`${training.date}${timeLabel} - ${training.title}`, `speakers:select:${training.id}`)
+      .row();
   }
   await ctx.reply("🎤 Спікери\n\nВиберіть тренінг:", { reply_markup: keyboard });
 }

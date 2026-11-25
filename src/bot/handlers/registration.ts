@@ -34,7 +34,12 @@ import {
 } from "../registration-state.js";
 import type { BotContext, RegistrationState, RegistrationStep } from "../types.js";
 import type { BotDependencies } from "../create-bot.js";
-import { normalizePhone, validateCourse, validateCustomAnswer, validateName } from "../../validators.js";
+import {
+  normalizePhone,
+  validateCourse,
+  validateCustomAnswer,
+  validateName,
+} from "../../validators.js";
 
 function setStep(
   ctx: BotContext,
@@ -309,7 +314,9 @@ export async function finishRegistration(
       reply_markup: registrationActionsKeyboard(dependencies.settings.chatInviteLink),
     },
   );
-  await ctx.reply("Головне меню:", { reply_markup: mainMenuKeyboard(true, dependencies.settings.chatInviteLink) });
+  await ctx.reply("Головне меню:", {
+    reply_markup: mainMenuKeyboard(true, dependencies.settings.chatInviteLink),
+  });
 }
 
 export function registerRegistrationHandlers(
@@ -408,7 +415,9 @@ export function registerRegistrationHandlers(
         return;
       }
       if (isVtfk && text === "магістр") {
-        await ctx.reply("У ВТФК немає магістратури. Оберіть інший курс.", { reply_markup: courseKeyboard(true) });
+        await ctx.reply("У ВТФК немає магістратури. Оберіть інший курс.", {
+          reply_markup: courseKeyboard(true),
+        });
         return;
       }
       setStep(ctx, "trainings", { course: text, trainingIds: [] });

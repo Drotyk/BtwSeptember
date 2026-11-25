@@ -8,6 +8,7 @@ import {
   speakersKeyboard,
 } from "../src/services/telegram-speaker.service.js";
 import type { SpeakerRecord, SpeakerRepository } from "../src/repositories/speakers.repository.js";
+import type { BotContext } from "../src/bot/types.js";
 
 const speaker = (
   id: string,
@@ -49,7 +50,7 @@ describe("Telegram speaker carousel", () => {
 
   it("sends the first speaker with escaped HTML and 1 / N", async () => {
     const replyWithPhoto = vi.fn<(photo: string, options: { caption: string }) => void>();
-    const ctx = { replyWithPhoto, reply: vi.fn() } as never;
+    const ctx = { replyWithPhoto, reply: vi.fn(), session: undefined } as unknown as BotContext;
     await showFirstSpeaker(
       ctx,
       repository([speaker("1", "<Євген>", 1), speaker("2", "Анна", 2)]),
@@ -63,7 +64,7 @@ describe("Telegram speaker carousel", () => {
 
   it("shows the first speaker from the global carousel by default", async () => {
     const replyWithPhoto = vi.fn();
-    const ctx = { replyWithPhoto, reply: vi.fn() } as never;
+    const ctx = { replyWithPhoto, reply: vi.fn(), session: undefined } as unknown as BotContext;
     const repo = repository([speaker("1", "Євген", 1), speaker("2", "Анна", 2)]);
     await showFirstSpeaker(ctx, repo);
     expect(repo.list).toHaveBeenCalledWith(undefined, true);
@@ -72,7 +73,7 @@ describe("Telegram speaker carousel", () => {
 
   it("uploads a bundled asset as a local file", async () => {
     const replyWithPhoto = vi.fn();
-    const ctx = { replyWithPhoto, reply: vi.fn() } as never;
+    const ctx = { replyWithPhoto, reply: vi.fn(), session: undefined } as unknown as BotContext;
     await showFirstSpeaker(
       ctx,
       repository([speaker("1", "Сергій Притула", 1, "asset:serhiy-prytula")]),
@@ -83,7 +84,11 @@ describe("Telegram speaker carousel", () => {
 
   it("edits media for next and caption for details, never sends a new message", async () => {
     const editMessageCaption = vi.fn();
-    const ctx = { editMessageMedia: vi.fn(), editMessageCaption } as never;
+    const ctx = {
+      editMessageMedia: vi.fn(),
+      editMessageCaption,
+      session: undefined,
+    } as unknown as BotContext;
     const repo = repository([speaker("1", "Євген", 1), speaker("2", "Анна", 2)]);
     await editSpeakerCarousel(ctx, repo, "cybersecurity", 0, "next");
     expect(ctx.editMessageMedia).toHaveBeenCalled();
@@ -95,7 +100,7 @@ describe("Telegram speaker carousel", () => {
   });
 
   it("handles an empty list without a media message", async () => {
-    const ctx = { reply: vi.fn() } as never;
+    const ctx = { reply: vi.fn(), session: undefined } as unknown as BotContext;
     await showFirstSpeaker(ctx, repository([]), "cybersecurity");
     expect(ctx.reply).toHaveBeenCalledWith(expect.stringContaining("ще не опублікована"));
   });

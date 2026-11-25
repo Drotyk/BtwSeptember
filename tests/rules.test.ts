@@ -62,9 +62,12 @@ describe("rules.service", () => {
         true,
       );
 
-      const options = reply.mock.calls[0]?.[1] as {
-        reply_markup: { inline_keyboard: Array<Array<Record<string, string>>> };
-      };
+      const options = (
+        reply.mock.calls[0] as unknown as [
+          string,
+          { reply_markup: { inline_keyboard: Array<Array<Record<string, string>>> } },
+        ]
+      )[1];
       const callbackData = options.reply_markup.inline_keyboard
         .flat()
         .map((button) => button.callback_data)
@@ -81,9 +84,12 @@ describe("rules.service", () => {
         true,
       );
 
-      const options = reply.mock.calls[0]?.[1] as {
-        reply_markup: { inline_keyboard: Array<Array<Record<string, string>>> };
-      };
+      const options = (
+        reply.mock.calls[0] as unknown as [
+          string,
+          { reply_markup: { inline_keyboard: Array<Array<Record<string, string>>> } },
+        ]
+      )[1];
       expect(options.reply_markup.inline_keyboard.flat()).toEqual([
         { text: "↩️ Повернутися до реєстрації", callback_data: "registration:return" },
       ]);

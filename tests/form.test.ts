@@ -16,7 +16,9 @@ describe("BTW training configuration", () => {
   });
 
   it("matches the supplied September schedule", () => {
-    expect(TRAININGS.map(({ date, time, speaker, title }) => ({ date, time, speaker, title }))).toEqual([
+    expect(
+      TRAININGS.map(({ date, time, speaker, title }) => ({ date, time, speaker, title })),
+    ).toEqual([
       {
         date: "14.09",
         time: "15:00",

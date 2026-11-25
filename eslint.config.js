@@ -22,7 +22,7 @@ export default tseslint.config(
     languageOptions: {
       parserOptions: {
         projectService: {
-          allowDefaultProject: ["scripts/hash-password.ts", "tests/*.test.ts"],
+          allowDefaultProject: ["scripts/hash-password.ts"],
           maximumDefaultProjectFileMatchCount_THIS_WILL_SLOW_DOWN_LINTING: 20,
         },
         tsconfigRootDir: import.meta.dirname,

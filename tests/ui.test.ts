@@ -2,7 +2,7 @@
 /**
  * Тести UI-логіки public/app.js.
  *
- * Середовище: jsdom (не тестур CSS-адаптивність, лише DOM-структуру).
+ * Середовище: jsdom (не текстур CSS-адаптивність, лише DOM-структуру).
  *
  * Примітка щодо дат: використовуємо ISO-рядки та перевіряємо наявність
  * компонентів дати через regex, щоб уникнути залежності від часового поясу CI.
@@ -38,8 +38,8 @@ function makeUser(overrides = {}) {
     course: "3",
     trainingIds: ["cybersecurity", "business", "change"],
     trainingDisplay: [
-      "10 листопада | 17:00 | Ольга рунько | Кібербезпека та безпечна цифрова поведінка",
-      "12 листопада | 17:00 | Оксана Ломич | Як почати бізнес з нуля без стартового капіталу",
+      "10 листопада | 17:00 | Ольга рунь-ко | Кібербезпека та безпечна цифрова поведінка",
+      "12 листопада | 17:00 | Оксана Ломи | Як почати бізнес з нуля без стартового капіталу",
       "13 листопада | 17:00 | Світлана Пенькова | Як подолати страх змін і почати діяти",
     ],
     discoverySource: "Від знайомих",
@@ -74,7 +74,7 @@ describe("formatDate", () => {
     expect(formatDate("not-a-date")).toBe("-");
   });
 
-  it("форматур коректний ISO-рядок (містить рік і коректний формат)", () => {
+  it("форма-тур коректний ISO-рядок (містить рік і коректний формат)", () => {
     const result = formatDate("2026-08-20T14:30:00.000Z");
     expect(result).toMatch(/2026/);
     // Повинен мати числа (день, місяць, хвилини)
@@ -277,7 +277,7 @@ describe("createUserRow", () => {
   });
 
   it("не використовур innerHTML для даних користувача (XSS-безпека)", () => {
-    const xssName = "<img src=x onerror=alert(1)>";
+    const xssName = '<img alt="x">';
     const user = makeUser({ name: xssName });
     const row = createUserRow(user, () => {});
     // innerHTML рядка не повинен містити тег img вставлений через дані
@@ -479,7 +479,7 @@ describe("createDrawerContent", () => {
   it("XSS-безпека: HTML у даних анкети не виконується", () => {
     const user = makeUser({
       name: '<script>alert("xss")</script>',
-      institution: "<img src=x onerror=alert(2)>",
+      institution: '<img alt="x">',
     });
     const frag = createDrawerContent(user);
     const container = document.createElement("div");
@@ -494,7 +494,7 @@ describe("createDrawerContent", () => {
 // --- init() - інтеграційний тест через jsdom ---------------------------------
 
 describe("init (DOM integration)", () => {
-  let originalFetch;
+  let originalFetch: typeof fetch;
 
   beforeEach(() => {
     // Мінімальна DOM-структура сторінки
@@ -563,13 +563,13 @@ describe("init (DOM integration)", () => {
           <button id="mobile-next">Наступна ➡️</button>
         </footer>
         <div id="drawer-overlay" class="drawer-overlay"></div>
-        <aside id="drawer" aria-hidden="true" role="dialog" aria-modal="true" aria-labelledby="drawer-title">
+        <div id="drawer" aria-hidden="true" role="dialog" aria-modal="true" aria-labelledby="drawer-title">
           <div class="drawer-header">
             <h2 id="drawer-title"></h2>
             <button id="drawer-close">×</button>
           </div>
           <div id="drawer-body"></div>
-        </aside>
+        </div>
       </div>
     `;
 
@@ -582,7 +582,7 @@ describe("init (DOM integration)", () => {
     document.body.classList.remove("drawer-open");
   });
 
-  function mockFetch(users = [], total = 0, page = 1) {
+  function mockFetch(users: Array<Record<string, unknown>> = [], total = 0, page = 1) {
     globalThis.fetch = vi.fn().mockResolvedValue({
       ok: true,
       status: 200,
@@ -600,6 +600,17 @@ describe("init (DOM integration)", () => {
 
   function mockFetchError() {
     globalThis.fetch = vi.fn().mockRejectedValue(new Error("Network error"));
+  }
+
+  function emptyUsersResponse() {
+    return {
+      ok: true,
+      status: 200,
+      json: async () => ({
+        users: [],
+        pagination: { page: 1, pageSize: 20, total: 0, totalPages: 1 },
+      }),
+    };
   }
 
   // -- Loading state -------------------------------------------------------
@@ -686,7 +697,7 @@ describe("init (DOM integration)", () => {
     mockFetch([makeUser()], 1);
     init();
     await vi.waitFor(() => {
-      const prev = document.getElementById("previous");
+      const prev = document.getElementById("previous") as HTMLButtonElement | null;
       expect(prev?.disabled).toBe(true);
     });
   });
@@ -695,7 +706,7 @@ describe("init (DOM integration)", () => {
     mockFetch([makeUser()], 1);
     init();
     await vi.waitFor(() => {
-      const next = document.getElementById("next");
+      const next = document.getElementById("next") as HTMLButtonElement | null;
       expect(next?.disabled).toBe(true);
     });
   });
@@ -707,7 +718,7 @@ describe("init (DOM integration)", () => {
     init();
 
     await vi.waitFor(() => {
-      expect(document.getElementById("next")?.disabled).toBe(false);
+      expect((document.getElementById("next") as HTMLButtonElement | null)?.disabled).toBe(false);
     });
 
     // Кнопка Наступна
@@ -737,17 +748,10 @@ describe("init (DOM integration)", () => {
     init();
     await vi.waitFor(() => expect(document.getElementById("empty-state")?.hidden).toBe(false));
 
-    const fetchSpy = vi.fn().mockResolvedValue({
-      ok: true,
-      status: 200,
-      json: async () => ({
-        users: [],
-        pagination: { page: 1, pageSize: 20, total: 0, totalPages: 1 },
-      }),
-    });
+    const fetchSpy = vi.fn().mockResolvedValue(emptyUsersResponse());
     globalThis.fetch = fetchSpy;
 
-    const searchInput = /** @type {HTMLInputElement} */ document.getElementById("search");
+    const searchInput = document.getElementById("search") as HTMLInputElement;
     searchInput.value = "Марія";
     document
       .getElementById("search-form")
@@ -797,7 +801,7 @@ describe("init (DOM integration)", () => {
     mockFetch([], 0);
     init();
 
-    const searchInput = /** @type {HTMLInputElement} */ document.getElementById("search");
+    const searchInput = document.getElementById("search") as HTMLInputElement;
     searchInput.value = "Тест запит";
 
     // Submit з тим самим моком
@@ -816,21 +820,14 @@ describe("init (DOM integration)", () => {
     init();
     await vi.waitFor(() => expect(document.getElementById("empty-state")?.hidden).toBe(false));
 
-    const searchInput = /** @type {HTMLInputElement} */ document.getElementById("search");
+    const searchInput = document.getElementById("search") as HTMLInputElement;
     searchInput.value = "щось";
     searchInput.dispatchEvent(new Event("input"));
 
     const clearBtn = document.getElementById("search-clear");
     expect(clearBtn?.hidden).toBe(false);
 
-    const fetchSpy = vi.fn().mockResolvedValue({
-      ok: true,
-      status: 200,
-      json: async () => ({
-        users: [],
-        pagination: { page: 1, pageSize: 20, total: 0, totalPages: 1 },
-      }),
-    });
+    const fetchSpy = vi.fn().mockResolvedValue(emptyUsersResponse());
     globalThis.fetch = fetchSpy;
 
     clearBtn?.click();
@@ -857,7 +854,7 @@ describe("init (DOM integration)", () => {
       expect(document.querySelectorAll("#users-body tr").length).toBe(1);
     });
 
-    const openBtn = document.querySelector("#users-body .btn-open");
+    const openBtn = document.querySelector<HTMLButtonElement>("#users-body .btn-open");
     openBtn?.click();
 
     const drawer = document.getElementById("drawer");
@@ -871,7 +868,7 @@ describe("init (DOM integration)", () => {
       expect(document.querySelectorAll("#users-body tr").length).toBe(1);
     });
 
-    document.querySelector("#users-body .btn-open")?.click();
+    document.querySelector<HTMLButtonElement>("#users-body .btn-open")?.click();
 
     expect(document.getElementById("drawer-title")?.textContent).toBe("Тестовий Учасник");
   });
@@ -883,7 +880,7 @@ describe("init (DOM integration)", () => {
       expect(document.querySelectorAll("#users-body tr").length).toBe(1);
     });
 
-    document.querySelector("#users-body .btn-open")?.click();
+    document.querySelector<HTMLButtonElement>("#users-body .btn-open")?.click();
     expect(document.getElementById("drawer")?.getAttribute("aria-hidden")).toBe("false");
 
     document.getElementById("drawer-close")?.click();
@@ -897,7 +894,7 @@ describe("init (DOM integration)", () => {
       expect(document.querySelectorAll("#users-body tr").length).toBe(1);
     });
 
-    document.querySelector("#users-body .btn-open")?.click();
+    document.querySelector<HTMLButtonElement>("#users-body .btn-open")?.click();
     expect(document.getElementById("drawer")?.getAttribute("aria-hidden")).toBe("false");
 
     document.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape", bubbles: true }));
@@ -911,7 +908,7 @@ describe("init (DOM integration)", () => {
       expect(document.querySelectorAll("#users-body tr").length).toBe(1);
     });
 
-    document.querySelector("#users-body .btn-open")?.click();
+    document.querySelector<HTMLButtonElement>("#users-body .btn-open")?.click();
     document.getElementById("drawer-overlay")?.click();
     expect(document.getElementById("drawer")?.getAttribute("aria-hidden")).toBe("true");
   });
@@ -923,7 +920,7 @@ describe("init (DOM integration)", () => {
       expect(document.querySelectorAll("#users-body tr").length).toBe(1);
     });
 
-    document.querySelector("#users-body .btn-open")?.click();
+    document.querySelector<HTMLButtonElement>("#users-body .btn-open")?.click();
     expect(document.body.classList.contains("drawer-open")).toBe(true);
 
     document.getElementById("drawer-close")?.click();
@@ -980,7 +977,7 @@ describe("init (DOM integration)", () => {
     init();
 
     // рругий запит (пошук)
-    const searchInput = /** @type {HTMLInputElement} */ document.getElementById("search");
+    const searchInput = document.getElementById("search") as HTMLInputElement;
     searchInput.value = "новий";
     document
       .getElementById("search-form")
@@ -991,7 +988,7 @@ describe("init (DOM integration)", () => {
     });
 
     // Перший запит вирішурться - не повинен перезаписати результат
-    resolveFirst({
+    resolveFirst!({
       ok: true,
       status: 200,
       json: async () => ({

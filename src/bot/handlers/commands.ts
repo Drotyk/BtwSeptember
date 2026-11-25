@@ -112,7 +112,9 @@ export function registerCommandHandlers(bot: Bot<BotContext>, dependencies: BotD
         "Ви вже заповнювали анкету. Повторна реєстрація неможлива, але Ви можете відредагувати свої дані.",
         { reply_markup: registrationActionsKeyboard(dependencies.settings.chatInviteLink) },
       );
-      await ctx.reply("Головне меню:", { reply_markup: mainMenuKeyboard(true, dependencies.settings.chatInviteLink) });
+      await ctx.reply("Головне меню:", {
+        reply_markup: mainMenuKeyboard(true, dependencies.settings.chatInviteLink),
+      });
       return;
     }
     await startRegistration(ctx);
